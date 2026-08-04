@@ -1,0 +1,26 @@
+# GCG transfer on Qwen2.5-7B using the verified N=100 precomputed suffixes (data.path).
+# No nanoGCG needed. data.limit caps how many suffix pairs are used for circuit discovery
+# (each pair = layers*heads patched forwards, so keep modest even on Blackwell).
+seed: 0
+model:
+  name: Qwen/Qwen2.5-7B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager
+generation:
+  max_new_tokens: 64
+  n_trials: 4
+intervention:
+  positions: all
+  steering_alpha: 8.0
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_7B.json
+  top_k_refusal: 11
+  top_k_compliance: 5
+data:
+  path: gcg_suffixes_7b.json
+  limit: 24
+  dev_fraction: 0.3
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95

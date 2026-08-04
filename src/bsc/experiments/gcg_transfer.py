@@ -79,27 +79,45 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
     n_prompts = cfg.data.limit or 5
 
     with RunContext.create("gcg_transfer", cfg, notes=cfg.notes) as run_ctx:
-        # Load the model BEFORE importing nanoGCG: nanoGCG's import monkeypatches transformers in
-        # a way that breaks from_pretrained's dtype handling (load_model also has a fallback).
         bundle = load_model(cfg.model)
         run_ctx.save_json("model.json", bundle.describe())
 
-        _install_nanogcg_shim()
-        import nanogcg
-        from nanogcg import GCGConfig
+        # --- 1. get GCG suffixes ------------------------------------------------------
+        # Two modes. Precomputed (data.path -> a suffixes JSON): reuse already-optimized suffixes
+        # (e.g. the verified N=100 7B set) -- no nanoGCG, and far larger N. The suffixes are
+        # model-specific, so this MUST run on the model they were optimized for. Fresh mode:
+        # optimize with nanoGCG (small N; needs the transformers-5 shim).
+        precomputed_path = cfg.data.path
+        if precomputed_path:
+            p = Path(precomputed_path)
+            if not p.is_absolute():
+                p = DATA_DIR / p.name if (DATA_DIR / p.name).exists() else (repo_root or Path.cwd()) / p
+            payload = json.loads(p.read_text(encoding="utf-8"))
+            expected_model = payload.get("model")
+            if expected_model and expected_model != bundle.name:
+                raise ValueError(
+                    f"suffixes were optimized for {expected_model!r} but model is {bundle.name!r}; "
+                    "GCG suffixes are model-specific and will not transfer across models"
+                )
+            pairs = payload["pairs"][:n_prompts]
+            suffixes = [{"goal": r["goal"], "suffix": r["suffix"]} for r in pairs]
+            harmful = [(r["goal"], "") for r in pairs]
+            run_ctx.log.info("loaded %d precomputed suffixes from %s (model %s)",
+                             len(suffixes), p.name, expected_model)
+        else:
+            _install_nanogcg_shim()
+            import nanogcg
+            from nanogcg import GCGConfig
 
-        # --- 1. optimize GCG suffixes -------------------------------------------------
-        harmful = _load_harmful(n_prompts)
-        suffixes: list[dict[str, Any]] = []
-        gcg_cfg = GCGConfig(
-            num_steps=GCG_STEPS, search_width=GCG_SEARCH_WIDTH, topk=GCG_TOPK,
-            seed=cfg.seed, verbosity="ERROR",
-        )
-        for i, (goal, target) in enumerate(harmful):
-            run_ctx.log.info("GCG %d/%d: %s", i + 1, n_prompts, goal[:60])
-            result = nanogcg.run(bundle.model, bundle.tokenizer, goal, target, gcg_cfg)
-            suffixes.append({"goal": goal, "target": target, "suffix": result.best_string,
-                             "loss": float(result.best_loss)})
+            harmful = _load_harmful(n_prompts)
+            suffixes = []
+            gcg_cfg = GCGConfig(num_steps=GCG_STEPS, search_width=GCG_SEARCH_WIDTH,
+                                topk=GCG_TOPK, seed=cfg.seed, verbosity="ERROR")
+            for i, (goal, target) in enumerate(harmful):
+                run_ctx.log.info("GCG %d/%d: %s", i + 1, n_prompts, goal[:60])
+                result = nanogcg.run(bundle.model, bundle.tokenizer, goal, target, gcg_cfg)
+                suffixes.append({"goal": goal, "suffix": result.best_string,
+                                 "loss": float(result.best_loss)})
         run_ctx.save_json("suffixes.json", suffixes)
 
         # --- 2. circuits: harm-contrastive and GCG-contrastive, same code -------------
