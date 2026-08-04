@@ -102,7 +102,14 @@ def _extract_direction(bundle: ModelBundle, n_pairs: int, dev_frac: float):
 
     best = max(per_layer, key=lambda r: abs(r["separation_d"]))
     best_layer = best["layer"]
-    return directions[best_layer].to(bundle.dtype), best_layer, per_layer
+    # Return a UNIT direction. The raw difference-of-means has a large, layer-dependent norm, so
+    # a coefficient sweep on it is uninterpretable and easily large enough to break coherence
+    # (which then reads as false "compliance"). With a unit direction, alpha is "how many
+    # residual-norm units to add", directly comparable to the typical residual norm reported
+    # alongside.
+    d = directions[best_layer]
+    unit = d / (d.norm() + 1e-8)
+    return unit.to(bundle.dtype), best_layer, per_layer
 
 
 def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, Any]:
