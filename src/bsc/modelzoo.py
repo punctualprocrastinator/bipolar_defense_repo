@@ -125,6 +125,26 @@ MODELS: dict[str, ModelSpec] = {
         verified=True,
         notes="Small Llama for cheap scale comparison within the family.",
     ),
+    "olmoe-1b-7b": ModelSpec(
+        key="olmoe-1b-7b",
+        hf_name="allenai/OLMoE-1B-7B-0924-Instruct",
+        family="olmoe",
+        params_b=6.9,  # 7B total params, ~1B active per token
+        n_layers=16,
+        hidden_size=2048,
+        num_attention_heads=16,
+        num_key_value_heads=16,  # MHA
+        head_dim=128,
+        gated=False,
+        verified=True,
+        notes=(
+            "Sparse Mixture-of-Experts (64 experts, 8 active), fully open weights + data. "
+            "ATTENTION IS DENSE (MHA) -- the MoE routing is in the MLP only, so the bipolar "
+            "attention-head methodology transfers unchanged. Tests whether the refusal/compliance "
+            "head structure appears in a sparse-MoE model. The expert-routing question (is "
+            "compliance routed through specific experts?) is a separate, larger study."
+        ),
+    ),
     "olmo2-7b": ModelSpec(
         key="olmo2-7b",
         hf_name="allenai/OLMo-2-1124-7B-Instruct",

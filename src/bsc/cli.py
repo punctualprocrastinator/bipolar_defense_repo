@@ -36,6 +36,7 @@ _register("sparsity", "Recompute circuit sparsity for all circuit maps (CPU, no 
 _register("crescendo_sweep", "Crescendo bipolar-defense multiplier sweep (settles P0-4)")
 _register("logit_lens_sign", "Logit-lens sign check on refusal heads (tests L25-H1 inversion)")
 _register("discover_circuit", "Harm-contrastive circuit discovery for one model")
+_register("steering_defense", "Additive (sign-correct) CAA steering defense on Crescendo")
 
 
 def build_parser() -> argparse.ArgumentParser:

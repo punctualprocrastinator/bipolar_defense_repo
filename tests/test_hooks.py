@@ -15,6 +15,7 @@ from bsc.hooks import (
     Head,
     HeadEdit,
     HeadIntervention,
+    ResidualSteering,
     applied,
     build_bipolar_edits,
 )
@@ -318,3 +319,99 @@ class TestBuildBipolarEdits:
     def test_unknown_mode_rejected(self):
         with pytest.raises(ValueError, match="unknown intervention mode"):
             build_bipolar_edits([], [], mode="telepathy")
+
+
+class TestResidualSteering:
+    """The sign-correct additive steering defense (CAA-style)."""
+
+    def test_alpha_zero_is_exact_noop(self, tiny_bundle, tiny_input):
+        with torch.no_grad():
+            reference = tiny_bundle.model(tiny_input).clone()
+        direction = torch.randn(tiny_bundle.geometry.hidden_size)
+        steer = ResidualSteering(tiny_bundle, direction, [0, 1, 2], alpha=0.0)
+        with applied(steer), torch.no_grad():
+            hooked = tiny_bundle.model(tiny_input)
+        assert torch.equal(reference, hooked), "alpha=0 steering perturbed the output"
+
+    def test_nonzero_alpha_changes_output(self, tiny_bundle, tiny_input):
+        with torch.no_grad():
+            reference = tiny_bundle.model(tiny_input).clone()
+        direction = torch.randn(tiny_bundle.geometry.hidden_size)
+        with applied(ResidualSteering(tiny_bundle, direction, [1], alpha=2.0)), torch.no_grad():
+            hooked = tiny_bundle.model(tiny_input)
+        assert not torch.equal(reference, hooked)
+
+    def test_adds_exactly_alpha_times_direction(self, tiny_bundle, tiny_input):
+        # Capture layer-1 output with and without steering; the difference at every position
+        # must equal alpha * direction, proving no scaling/broadcast surprises.
+        direction = torch.randn(tiny_bundle.geometry.hidden_size)
+        alpha = 3.0
+        captured = {}
+
+        def cap(m, a, out):
+            captured.setdefault("clean", (out[0] if isinstance(out, tuple) else out).detach().clone())
+
+        h = tiny_bundle.layer(1).register_forward_hook(cap)
+        with torch.no_grad():
+            tiny_bundle.model(tiny_input)
+        h.remove()
+
+        captured.clear()
+        got = {}
+
+        def cap2(m, a, out):
+            got["steered"] = (out[0] if isinstance(out, tuple) else out).detach().clone()
+
+        steer = ResidualSteering(tiny_bundle, direction, [1], alpha=alpha, positions="all")
+        steer.register()
+        # register cap2 AFTER steering so it sees the post-steer output
+        h2 = tiny_bundle.layer(1).register_forward_hook(cap2)
+        with torch.no_grad():
+            tiny_bundle.model(tiny_input)
+        h2.remove()
+        steer.remove()
+
+        h3 = tiny_bundle.layer(1).register_forward_hook(cap)
+        with torch.no_grad():
+            tiny_bundle.model(tiny_input)
+        h3.remove()
+
+        delta = got["steered"] - captured["clean"]
+        expected = alpha * direction
+        assert torch.allclose(delta, expected.expand_as(delta), atol=1e-5)
+
+    def test_hooks_removed_after_exception(self, tiny_bundle, tiny_input):
+        with torch.no_grad():
+            reference = tiny_bundle.model(tiny_input).clone()
+        direction = torch.randn(tiny_bundle.geometry.hidden_size)
+        steer = ResidualSteering(tiny_bundle, direction, [0, 1], alpha=5.0)
+        with pytest.raises(RuntimeError, match="boom"), applied(steer):
+            raise RuntimeError("boom")
+        with torch.no_grad():
+            after = tiny_bundle.model(tiny_input)
+        assert torch.equal(reference, after), "steering hook leaked after exception"
+
+    def test_last_position_only(self, tiny_bundle):
+        x = torch.randn(1, 4, tiny_bundle.geometry.hidden_size)
+        direction = torch.randn(tiny_bundle.geometry.hidden_size)
+        got = {}
+        steer = ResidualSteering(tiny_bundle, direction, [0], alpha=2.0, positions="last")
+        steer.register()
+        h = tiny_bundle.layer(0).register_forward_hook(
+            lambda m, a, out: got.__setitem__("o", (out[0] if isinstance(out, tuple) else out).detach().clone())
+        )
+        with torch.no_grad():
+            tiny_bundle.model(x)
+        h.remove()
+        steer.remove()
+        # Only the last position should be shifted; check earlier positions are unchanged by
+        # re-running clean and comparing the first position.
+        clean = {}
+        h2 = tiny_bundle.layer(0).register_forward_hook(
+            lambda m, a, out: clean.__setitem__("o", (out[0] if isinstance(out, tuple) else out).detach().clone())
+        )
+        with torch.no_grad():
+            tiny_bundle.model(x)
+        h2.remove()
+        assert torch.allclose(got["o"][:, 0], clean["o"][:, 0], atol=1e-6)
+        assert not torch.allclose(got["o"][:, -1], clean["o"][:, -1], atol=1e-6)

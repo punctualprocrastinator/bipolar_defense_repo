@@ -209,8 +209,76 @@ class HeadIntervention:
         self._handles.clear()
 
 
+class ResidualSteering:
+    """Add a fixed direction to the residual stream at one or more layers' output.
+
+    This is the *sign-correct* alternative to multiplicative head amplification. P0-4 showed
+    that ``hidden *= multiplier`` on an activation-patching-selected "refusal" head can push
+    toward compliance, because the head's sign in the unembedding basis was never checked.
+    A difference-of-means refusal direction (Arditi et al. / CAA) is sign-correct by
+    construction: it points from the complying activation mean to the refusing one, so adding a
+    positive multiple always steers toward refusal.
+
+    The direction is added at each hooked decoder layer's *output* (the residual stream), not at
+    ``o_proj``'s input, because the CAA direction lives in residual space, not per-head space.
+    """
+
+    def __init__(
+        self,
+        bundle: ModelBundle,
+        direction: torch.Tensor,
+        layers: Sequence[int],
+        *,
+        alpha: float = 1.0,
+        positions: str = "all",
+    ) -> None:
+        if positions not in {"last", "all"}:
+            raise ValueError(f"positions must be 'last' or 'all', got {positions!r}")
+        self.bundle = bundle
+        self.direction = direction
+        self.layers = list(layers)
+        self.alpha = alpha
+        self.positions = positions
+        self._handles: list[Any] = []
+
+    @property
+    def is_identity(self) -> bool:
+        return self.alpha == 0.0
+
+    def _make_hook(self):
+        alpha = self.alpha
+        positions = self.positions
+
+        def hook(module: Any, args: Any, output: Any):
+            # Decoder layers return either a tensor or a tuple whose first element is the hidden
+            # state. Handle both without assuming a specific transformers version.
+            hidden = output[0] if isinstance(output, tuple) else output
+            vec = self.direction.to(device=hidden.device, dtype=hidden.dtype)
+            if positions == "all" or hidden.dim() < 3:
+                hidden = hidden + alpha * vec
+            else:
+                hidden = hidden.clone()
+                hidden[:, -1, :] = hidden[:, -1, :] + alpha * vec
+            if isinstance(output, tuple):
+                return (hidden, *output[1:])
+            return hidden
+
+        return hook
+
+    def register(self) -> None:
+        if self._handles:
+            raise RuntimeError("steering already registered; call remove() first")
+        for layer in self.layers:
+            self._handles.append(self.bundle.layer(layer).register_forward_hook(self._make_hook()))
+
+    def remove(self) -> None:
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+
 @contextmanager
-def applied(intervention: HeadIntervention) -> Iterator[HeadIntervention]:
+def applied(intervention: HeadIntervention | ResidualSteering) -> Iterator[Any]:
     """Register hooks for the duration of the block, always removing them afterwards."""
     intervention.register()
     try:

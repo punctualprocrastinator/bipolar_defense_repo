@@ -6,4 +6,10 @@ One experiment per module, each exposing ``run(cfg) -> dict``. Registered in
 
 from __future__ import annotations
 
-__all__ = ["sparsity", "crescendo_sweep", "logit_lens_sign", "discover_circuit"]
+__all__ = [
+    "sparsity",
+    "crescendo_sweep",
+    "logit_lens_sign",
+    "discover_circuit",
+    "steering_defense",
+]
