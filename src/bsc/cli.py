@@ -38,6 +38,7 @@ _register("logit_lens_sign", "Logit-lens sign check on refusal heads (tests L25-
 _register("discover_circuit", "Harm-contrastive circuit discovery for one model")
 _register("steering_defense", "Additive (sign-correct) CAA steering defense on Crescendo")
 _register("gcg_transfer", "GCG circuit discovery + bipolar defense + cross-attack transfer")
+_register("bipolar_steering", "Per-head refusal steering + compliance ablation (true bipolar)")
 
 
 def build_parser() -> argparse.ArgumentParser:

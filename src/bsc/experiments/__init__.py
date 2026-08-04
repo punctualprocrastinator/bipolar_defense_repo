@@ -13,4 +13,5 @@ __all__ = [
     "discover_circuit",
     "steering_defense",
     "gcg_transfer",
+    "bipolar_steering",
 ]
