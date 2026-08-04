@@ -40,6 +40,7 @@ _register("steering_defense", "Additive (sign-correct) CAA steering defense on C
 _register("gcg_transfer", "GCG circuit discovery + bipolar defense + cross-attack transfer")
 _register("bipolar_steering", "Per-head refusal steering + compliance ablation (true bipolar)")
 _register("compliance_calibration", "Steer compliance heads toward refusal (calibrated) vs zero-ablate")
+_register("harvest_scenarios", "Generate + validate more Crescendo scenarios to grow the benchmark")
 
 
 def build_parser() -> argparse.ArgumentParser:

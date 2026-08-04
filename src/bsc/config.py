@@ -132,6 +132,8 @@ class ExperimentConfig:
     dry_run: bool = False
     # Multiplier grid for the Crescendo sweep; empty means use the experiment's default grid.
     intervention_sweep: list[float] = field(default_factory=list)
+    # Attacker model for scenario harvesting (empty = use the same model as the target).
+    attacker_model: str = ""
     model: ModelConfig = field(default_factory=ModelConfig)
     generation: GenerationConfig = field(default_factory=GenerationConfig)
     intervention: InterventionConfig = field(default_factory=InterventionConfig)

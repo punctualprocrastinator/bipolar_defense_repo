@@ -15,4 +15,5 @@ __all__ = [
     "gcg_transfer",
     "bipolar_steering",
     "compliance_calibration",
+    "harvest_scenarios",
 ]
