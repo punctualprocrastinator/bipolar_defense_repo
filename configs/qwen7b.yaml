@@ -1,0 +1,25 @@
+# Qwen2.5-7B-Instruct. The model with the L25 intra-layer antagonism and the L25-H1 sign-flip
+# claim. Circuit map is the validated harm-contrastive 7B map (11 refusal / 5 compliance heads).
+seed: 0
+model:
+  name: Qwen/Qwen2.5-7B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager
+generation:
+  max_new_tokens: 80
+  n_trials: 8
+  temperature: 0.7
+  top_p: 0.9
+intervention:
+  positions: last
+  ablate_compliance: true
+  compliance_scale: 0.0
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_7B.json
+  selection: top_k
+  top_k_refusal: 11
+  top_k_compliance: 5
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95

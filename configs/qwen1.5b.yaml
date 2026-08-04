@@ -1,0 +1,26 @@
+# Qwen2.5-1.5B-Instruct. The model the original Crescendo defense claim was made on, so this is
+# the config that settles P0-4. Circuit map ported from the legacy harm-contrastive discovery.
+seed: 0
+model:
+  name: Qwen/Qwen2.5-1.5B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager   # head hooks need o_proj input exposed
+generation:
+  max_new_tokens: 80
+  n_trials: 8
+  temperature: 0.7
+  top_p: 0.9
+intervention:
+  positions: last
+  ablate_compliance: true
+  compliance_scale: 0.0
+circuit:
+  # Legacy 1.5B harm-contrastive map. Overridable to a freshly discovered one.
+  circuit_map_path: legacy_circuits/circuit_map_1_5B.json
+  selection: top_k
+  top_k_refusal: 10
+  top_k_compliance: 5
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95

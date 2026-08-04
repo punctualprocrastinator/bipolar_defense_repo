@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bsc"
+version = "0.1.0"
+description = "Bipolar Safety Circuits: refusal/compliance head circuits and inference-time defenses"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Shivam Dubey" }]
+
+dependencies = [
+    "torch>=2.6",
+    "transformers>=4.48",
+    "accelerate>=1.3",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+# Analysis / plotting. Kept out of the core so a GPU node can install a minimal env.
+viz = ["matplotlib>=3.8", "pandas>=2.2"]
+# Attack implementations. nanogcg pulls its own pins; installed separately on the GPU node.
+attacks = ["nanogcg>=0.3"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
+
+[project.scripts]
+bsc = "bsc.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bsc"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/bsc/data" = "bsc/data"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: requires a CUDA device",
+    "slow: requires downloading/running real model weights",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

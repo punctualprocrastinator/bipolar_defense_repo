@@ -1,0 +1,17 @@
+# Runs are reproducible from config; the artifacts themselves are not versioned here.
+# Keep INDEX.md (the human-readable log) but ignore the heavy per-run directories.
+runs/*/
+!runs/INDEX.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Model weights / caches should never land in the repo
+*.safetensors
+*.bin
+hf_cache/
