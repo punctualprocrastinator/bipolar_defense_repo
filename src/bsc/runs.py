@@ -173,6 +173,14 @@ class RunContext:
     # -- manifest ----------------------------------------------------------------
 
     def write_manifest(self) -> Path:
+        # The seed is authoritative in config.seed (the CLI seeds from it before the experiment
+        # builds this context). Record it explicitly here too so a manifest is self-contained
+        # even when the richer SeedState was not threaded through.
+        seed_record = _jsonable(self._seed_state)
+        if seed_record is None:
+            cfg_seed = getattr(self.config, "seed", None)
+            if cfg_seed is not None:
+                seed_record = {"seed": cfg_seed, "source": "config.seed"}
         manifest = {
             "experiment": self.experiment,
             "status": self._status,
@@ -182,7 +190,7 @@ class RunContext:
             "notes": self.notes,
             "config": _jsonable(self.config),
             "config_hash": provenance.config_hash(self.config),
-            "seed": _jsonable(self._seed_state),
+            "seed": seed_record,
             "metrics": self._metrics,
             "artifacts": self._artifacts,
             "provenance": provenance.collect(REPO_ROOT, self._tracked_env).to_dict(),

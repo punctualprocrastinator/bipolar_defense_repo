@@ -1,0 +1,14 @@
+# Circuit discovery base config. Model is set via --set model.name=...
+# n_pairs via data.limit. Discovery writes its own circuit_map.json into the run dir.
+seed: 0
+strict_determinism: false
+model:
+  name: Qwen/Qwen2.5-1.5B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager
+data:
+  limit: 8          # (harmful, benign) pairs to average over
+circuit:
+  top_k_refusal: 11
+  top_k_compliance: 5
