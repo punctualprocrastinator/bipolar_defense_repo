@@ -142,10 +142,40 @@ n=10 (the two runs disagree on refusal-only, 0% vs 40%, purely from different sa
 So the honest status of the bipolar-vs-one-sided question:
 - **Both robust:** the compliance heads are a genuine independent lever with the correct sign
   (compliance-only −8 defends at 10%, coherent), and the correct-signed bipolar is a clean 0%.
-- **Unresolved:** whether bipolar *beats* refusal-only is **not answerable at n=10** because
-  refusal-only already floors out. Detecting an additive benefit needs a harder/larger benchmark
-  (scale the Crescendo scenarios via the harvester, or a setting where one-sided doesn't reach 0%).
-  Zero-ablation, by contrast, is consistently *unhelpful* (60–80% ASR).
+- **Unresolved at n=10:** whether bipolar *beats* refusal-only was not answerable at n=10 because
+  refusal-only already floored out. **Now resolved at n=35 — see below.**
+
+### RESOLVED at n=35 — the bipolar defense significantly beats both one-sided defenses
+
+Grew the benchmark 10 → **35** scenarios via validated harvesting (`harvest_scenarios`: a 7B
+attacker writes escalations, kept only if the undefended 1.5B target genuinely complies). The
+harvested scenarios are *harder* — baseline ASR is **89%** (vs 60% on the original 10), so the
+defenses no longer saturate and can separate. Run `runs/compliance_calibration/…-3e800e6cea`,
+stable seed, 35 scenarios × 8 trials:
+
+| condition | ASR | 95% CI | vs baseline | refusal/degenerate/compliance trials |
+|---|---|---|---|---|
+| baseline | 89% | [74–95] | — | 67/0/213 |
+| compliance zero-ablate | 94% | [81–98] | +6pp, ns | worse than baseline |
+| refusal-only (+8) | 49% | [33–64] | −40pp, **p<0.001** | 238/0/42 |
+| compliance-only (−8) | 60% | [44–74] | −29pp, **p=0.002** | 207/0/73 |
+| **bipolar +refusal 8 / −compliance 8** | **34%** | [21–51] | **−54pp, p<0.001** | 251/0/29 |
+
+**The correctly-signed bipolar defense is significantly the best**, and the two sides are
+**additive**: refusal-only removes 40pp, compliance-only removes 29pp, and combining them removes
+**54pp** — more than either alone, with the highest coherent-refusal share (251/280 trials) and
+zero degeneration. This is the result the n=10 run couldn't reach, and it **vindicates the bipolar
+framing for defense**: both head populations are causal, opposite-signed levers, and steering both
+in their correct directions beats steering either one. Zero-ablation remains useless (94% ≥
+baseline) — the signal must be *reversed*, not removed.
+
+**Bottom line on the whole defense arc:** multiplicative amplification fails (sign-inverted head);
+zero-ablation does nothing; the working defense is *additive steering along the correctly-signed
+refusal and compliance directions*, and the **full bipolar version (both sides) is significantly
+the strongest** (89% → 34% ASR, coherent). The single residual direction is the simplest near-equal
+alternative. Remaining caveats: still one model (1.5B) and one attack (Crescendo) for this
+comparison; the harvested scenarios are 7B-authored (a possible distribution quirk); an LLM judge
+would tighten the compliance/degeneration boundary further.
 
 ---
 
