@@ -14,4 +14,5 @@ __all__ = [
     "steering_defense",
     "gcg_transfer",
     "bipolar_steering",
+    "compliance_calibration",
 ]
