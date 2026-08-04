@@ -122,8 +122,16 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
 
         # --- 2. circuits: harm-contrastive and GCG-contrastive, same code -------------
         benign = json.loads((DATA_DIR / "benign_prompts.json").read_text(encoding="utf-8"))["prompts"]
-        harm_clean = [_chat(bundle, b) for b in benign[:n_prompts]]          # benign -> complies
-        harm_corrupt = [_chat(bundle, g) for g, _ in harmful]               # harmful -> refuses
+        # Both circuits use the SAME harmful prompts and the SAME pair count so the comparison is
+        # apples-to-apples. The count is capped by the available benign prompts.
+        n_pairs = min(len(harmful), len(benign))
+        if n_pairs < len(harmful):
+            run_ctx.log.warning("capping circuit pairs to %d (only %d benign prompts available)",
+                                n_pairs, len(benign))
+        harmful_c = harmful[:n_pairs]
+        suffixes_c = suffixes[:n_pairs]
+        harm_clean = [_chat(bundle, b) for b in benign[:n_pairs]]           # benign -> complies
+        harm_corrupt = [_chat(bundle, g) for g, _ in harmful_c]            # harmful -> refuses
         # Harm-contrastive: clean=refusing(harmful), corrupt=complying(benign). Patch refusing
         # activation into the complying run to find refusal heads.
         harm_circuit = discover_circuit_scores(
@@ -131,8 +139,8 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
             method="harm_contrastive_patching",
         )
         # GCG-contrastive: clean=refusing(harmful, no suffix), corrupt=complying(harmful+suffix).
-        gcg_clean = [_chat(bundle, g) for g, _ in harmful]
-        gcg_corrupt = [_chat(bundle, f"{g} {s['suffix']}") for (g, _), s in zip(harmful, suffixes, strict=True)]
+        gcg_clean = [_chat(bundle, g) for g, _ in harmful_c]
+        gcg_corrupt = [_chat(bundle, f"{g} {s['suffix']}") for (g, _), s in zip(harmful_c, suffixes_c, strict=True)]
         gcg_circuit = discover_circuit_scores(
             bundle, clean_prompts=gcg_clean, corrupt_prompts=gcg_corrupt,
             method="adversarial_contrastive_patching",
