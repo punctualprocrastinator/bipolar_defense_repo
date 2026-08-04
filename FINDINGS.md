@@ -117,9 +117,35 @@ This is the mechanistic core of the "bipolar" name made concrete and *causal*: t
 populations have **opposite-sign geometry**, so a defense must steer them in opposite directions
 (refusal `+`, compliance `−`). It also explains why the single residual-direction defense works so
 cleanly (it never has to reconcile the two head signs) and why naive per-head or single-sign
-schemes fail. Best combined point: refusal `+8` & compliance `−4/−8` → ~10% ASR, fully coherent.
-(Credit: the sign flip was found by testing the negative direction on the compliance heads, which
-the positive-only first pass had missed.)
+schemes fail. (Credit: the sign flip was found by testing the negative direction on the compliance
+heads, which the positive-only first pass had missed.)
+
+### Correct-signed bipolar (+refusal / −compliance) — works, but doesn't beat refusal-only at n=10
+
+Clean matched run with the stable-seed fix (`runs/compliance_calibration/…-e9c7acf649`):
+
+| condition | ASR | coherence (refusal/degen/comply) |
+|---|---|---|
+| baseline | 60% | 51/0/29 |
+| compliance zero-ablate | 80% | worse than baseline |
+| refusal-only (+8) | **0%** [0–28], p=0.031 | 80/0/0 |
+| compliance-only (−8) | 10% [2–40], p=0.062 | 78/0/2 |
+| **bipolar: +refusal 8 / −compliance 8** | **0%** [0–28], p=0.031 | 80/0/0 |
+
+The correctly-signed bipolar defense achieves **0% ASR with 80/80 coherent refusals** — a clean,
+strong defense. **But refusal-steering alone also hits 0% here**, so the bipolar version *matches*
+rather than *beats* the one-sided defense: refusal steering already saturates the floor, leaving no
+headroom for the compliance side to demonstrably add value. An earlier (pre-seed-fix) run had
+refusal-only at 40% and combined at 10%, suggesting synergy — but that gap is within seed noise at
+n=10 (the two runs disagree on refusal-only, 0% vs 40%, purely from different sample seeds).
+
+So the honest status of the bipolar-vs-one-sided question:
+- **Both robust:** the compliance heads are a genuine independent lever with the correct sign
+  (compliance-only −8 defends at 10%, coherent), and the correct-signed bipolar is a clean 0%.
+- **Unresolved:** whether bipolar *beats* refusal-only is **not answerable at n=10** because
+  refusal-only already floors out. Detecting an additive benefit needs a harder/larger benchmark
+  (scale the Crescendo scenarios via the harvester, or a setting where one-sided doesn't reach 0%).
+  Zero-ablation, by contrast, is consistently *unhelpful* (60–80% ASR).
 
 ---
 
