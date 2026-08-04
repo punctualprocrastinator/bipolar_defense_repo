@@ -61,6 +61,40 @@ this problem — which is exactly why additive works where multiplicative fails.
 below — so part of the apparent "compliance" there is degeneration the keyword judge can't
 cleanly separate. Either way, multiplicative amplification is not a working defense.)*
 
+### Is the defense actually "bipolar"? Mostly no — the refusal side does the work
+
+The working single-direction defense above uses a residual direction and touches *no heads*, so
+it is not bipolar. Tested the true head-based bipolar defense directly
+(`runs/bipolar_steering/…`, 1.5B): per-head additive steering on the 10 refusal heads (sign taken
+from the measured activation difference) with and without zero-ablating the 5 compliance heads,
+decomposed.
+
+| condition | ASR | output quality (calibrated α=8) |
+|---|---|---|
+| baseline | 50% | — |
+| compliance-ablate only | 60% | **no help** — ≥ baseline |
+| refusal-steer only (α=8) | 20% | **coherent refusals** (78 refusal / 2 compliance / 0 degenerate) |
+| bipolar: refusal-steer + compliance-ablate (α=8) | 10% | coherent (76 refusal / 3 compliance / 1 degenerate) |
+
+Two conclusions:
+
+1. **Compliance-head ablation contributes little.** Alone it does not reduce ASR (60% ≥ 50%
+   baseline); added on top of refusal steering it moves the point estimate only marginally and
+   inconsistently (bipolar_8 10% vs refusal_steer_8 20%, but bipolar_16 is *worse* than
+   refusal_steer_16 by degeneration). **The refusal side does essentially all the work** — whether
+   applied as per-head steering or as the single residual direction.
+2. **Per-head steering saturates faster.** It injects into 10 heads at once, so at α≥16 it
+   over-steers into refusal-flavoured *degeneration* (refusal_steer_16: 40/80 nonresponse;
+   bipolar_24: 80/80 nonresponse) rather than coherent refusals. The single residual direction
+   (`steering_defense`) reaches the same 10% ASR with cleanly coherent refusals and is easier to
+   calibrate.
+
+So for **defense**, the bipolar framing is not vindicated: suppressing compliance heads adds
+little, and per-head steering is more disruptive than a single refusal direction. The compliance
+heads are real and causal *in the circuit* (they exist across architectures, §cross-architecture),
+but ablating them is not a useful defense lever. The cleanest defense is the single residual
+refusal direction.
+
 ---
 
 ## 2026-08-04 — METHODOLOGY: refusal-classifier ASR is fooled by degeneration
