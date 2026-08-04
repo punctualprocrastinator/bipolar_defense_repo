@@ -4,112 +4,143 @@ Dated, append-only research log. Every entry points to the run directory that pr
 Negative and non-reproducing results stay here; they are superseded by later dated entries, not
 deleted (CLAUDE.md §2, §7).
 
-All runs below executed on an NVIDIA RTX PRO 6000 Blackwell Server Edition (sm_120, 95 GB),
-torch 2.11.0+cu130, transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
+All runs executed on an NVIDIA RTX PRO 6000 Blackwell (sm_120, 95 GB), torch 2.11.0+cu130,
+transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
-## 2026-08-04 — P0-4 SETTLED: the multiplicative bipolar "defense" *increases* attack success
+## 2026-08-04 — HEADLINE: which "bipolar defense" actually works
 
-**Claim retested:** "the 3× bipolar defense (amplify refusal heads ×3, zero-ablate compliance
-heads) blocks the harmful Turn-5 request" (`RESEARCH_OVERVIEW.md` §2.3). `CLAIMS_AUDIT.md` P0-4
-flagged that it rested on a single greedy sample and did not reproduce; the sweep that would
-settle it had never been run. It has now been run.
+Two mechanisms have been conflated under "bipolar defense." They give opposite results.
 
-### Result 1 — behavioral multiplier sweep (the ground truth)
+| Mechanism | What it does | Result |
+|---|---|---|
+| **Multiplicative amplification** | `refusal_head_output *= N`, zero compliance heads | **Fails** — never reduces ASR |
+| **Additive steering** | add a difference-of-means refusal direction to the residual stream | **Works** — and transfers across attacks |
 
-Qwen2.5-1.5B, 10 Crescendo scenarios, 8 sampled trials each, paired seeds, degeneracy-aware
-judge. Run: `runs/crescendo_sweep/20260804T141340Z-fb496d884b`.
+### The additive steering defense works, and transfers across attack types
 
-| condition | ASR (any trial complies) | 95% CI | vs baseline |
-|---|---|---|---|
-| baseline (no intervention) | 70% | [40%, 89%] | — |
-| mult_1 (compliance-ablate only) | 70% | [40%, 89%] | Δ=0.00, p=1.00 |
-| mult_3 (**the published defense**) | **90%** | [60%, 98%] | Δ=+0.20 |
-| mult_6 | 100% | [72%, 100%] | Δ=+0.30 |
-| mult_12 | 100% | [72%, 100%] | Δ=+0.30 |
-| mult_24 | 100% | [72%, 100%] | Δ=+0.30 |
+A single refusal direction — mean(harmful) − mean(benign) residual at layer 18, **unit-normalized**,
+built with **no attack-specific data** — added to the residual stream during generation:
 
-**The defense does the opposite of what was claimed.** ASR rises monotonically with the
-multiplier, from 70% undefended to 100% at 6×. At the published 3× setting ASR is 90%, *higher*
-than baseline. The per-scenario table shows the mechanism turning on sharply at 6×, where every
-one of the 10 scenarios hits 100% compliance (partly genuine compliance, partly degeneration —
-the judge flags the NONRESPONSE share, e.g. RDX at 24× is 4/8 NR). The effect is not yet
-individually significant at n=10 scenarios (McNemar p=0.25), but the direction is unambiguous
-and consistent across every scenario.
+| Attack | Model | ASR undefended | ASR defended | Coefficient | Output quality |
+|---|---|---|---|---|---|
+| Crescendo (multi-turn) | Qwen2.5-1.5B | 60% [31–83] | **10%** [2–40] | α=16 | coherent refusals |
+| GCG (single-turn) | Qwen2.5-7B | 46% [28–65] | **0%** [0–14] | α=8 | 96/96 coherent refusals |
 
-The original "3× blocks Turn 5" claim is **retracted**. It was a single greedy sample; under
-8-trial sampling the same intervention raises attack success.
+Runs: `runs/steering_defense/…` (Crescendo), `runs/gcg_transfer/…` (7B GCG).
 
-### Result 2 — mechanism: the dominant refusal head is sign-inverted
+The **same direction defends both attacks** — that is cross-attack transfer of the *defense*.
+Verified genuine: on 7B GCG all 96 defended trials are coherent refusals ("Sorry, but what
+you're asking involves activities that are illegal and unethical. I cannot provide any
+assistance…"), 0 compliance, 0 degeneration. On Crescendo, α=16 gives "I am unable to provide
+any information about illegal activities…". There is an **inverted-U in the coefficient**:
+too small (baseline) or too large (α=32 → 50%) both fail; α≈16 is the optimum.
 
-Logit-lens sign check: project each refusal head's isolated contribution through the
-unembedding and compare promoted mass on refusal vs compliance tokens.
-Runs: `runs/logit_lens_sign/…` (1.5B `-1a2104bec4`, 7B `-0b40f5bc60`).
+Compliance-head *ablation alone* does **not** transfer to GCG (54% ASR, ≈ baseline). So the
+working ingredient is adding the refusal direction, not removing compliance heads.
 
-| Model | Dominant head (circuit score) | Sign score (refusal − compliance logit) | Inverted? | Heads inverted |
-|---|---|---|---|---|
-| Qwen2.5-1.5B | L23-H11 (+0.74) | **−1.19** | yes — top tokens include " complying", 作为 | 5 of 10 |
-| Qwen2.5-7B | L25-H1 (+1.87) | **−7.44** | yes | 6 of 11 |
+### The multiplicative amplification defense fails — the head is sign-inverted
 
-The heads selected as "refusal" by activation patching write *toward* compliance in the
-unembedding basis. Amplifying them (`hidden *= multiplier`) therefore strengthens compliance —
-exactly the behavioral result above.
+Crescendo multiplier sweep, Qwen2.5-1.5B (`runs/crescendo_sweep/…`, corrected judge):
 
-**Caveat (honest):** this single-head DLA applies the final RMSNorm to each head's *isolated*
-contribution, which distorts the top-promoted-token strings (the 7B top tokens come out as
-'while'/code fragments, not clean 'Sure'/'Certainly'). The **sign_score over the curated token
-sets is robust to this**; the specific top-token strings are not and should not be quoted
-without the RMS-real correction (the legacy `dla_decomposition_poc.py` documents that fix). The
-behavioral sweep is the primary evidence; DLA is corroborating mechanism.
+| condition | ASR |
+|---|---|
+| baseline | 70% |
+| mult_1 (compliance-ablate only) | 60% |
+| mult_3 / 6 / 12 | ~90–100% |
 
-### Takeaway (the publishable result)
+Amplification never reduces ASR. Root cause (`runs/logit_lens_sign/…`): the **dominant "refusal"
+head is sign-inverted** — its isolated contribution, read through the unembedding, promotes
+*compliance* tokens over refusal tokens. L23-H11 (1.5B) sign score −1.19; L25-H1 (7B) −7.44;
+5/10 and 6/11 refusal heads inverted. Multiplying such a head's output amplifies toward
+compliance, so "stronger" is worse. Adding the correctly-signed *direction* (above) does not have
+this problem — which is exactly why additive works where multiplicative fails.
 
-A head identified as "refusal" by causal activation patching can write *toward compliance* in
-the unembedding basis. An inference-time defense that amplifies such a head along an unexamined
-sign convention **degrades safety monotonically** rather than improving it. This is a stronger
-and more interesting mechanistic claim than the original defense: it is a concrete failure mode
-of steering-by-amplification, reproducible and quantified. The correct defense direction is the
-open question (ablate-only `mult_1` at least does no harm; additive steering along the *measured*
-refusal direction is the natural next test).
+*(Caveat: at high multipliers the model also degrades into incoherence — see the methodology note
+below — so part of the apparent "compliance" there is degeneration the keyword judge can't
+cleanly separate. Either way, multiplicative amplification is not a working defense.)*
 
 ---
 
-## 2026-08-04 — Cross-architecture circuit discovery: the compliance side is not a GQA artifact
+## 2026-08-04 — METHODOLOGY: refusal-classifier ASR is fooled by degeneration
 
-**Question:** is the bipolar refusal/compliance structure a property of safety tuning, or an
-artifact of Qwen + grouped-query attention? Tested by rediscovering circuits from scratch,
-including an MHA (non-GQA) control. Harm-contrastive patching, 8 (harmful, benign) pairs.
-Runs: `runs/discover_circuit/…`.
+A first pass concluded that *both* defenses increased ASR. That was wrong, and the reason is
+important enough to be a finding in its own right.
 
-| Model | Attn | Top refusal head (score) | Top compliance head (score) |
+Strong intervention breaks the model into repetition salad — `回答回答回答…` (answer answer),
+`不存在不存在…` (does-not-exist), `Please keepeadowowow色`. The keyword refusal-classifier scores
+these as **compliance** (no refusal phrase present), and the original degeneracy detector missed
+them because it was **English/whitespace-only** — CJK has no spaces, so `回答回答回答` was one
+"word". This inflated ASR toward 100% and produced a false "defense makes it worse" conclusion.
+
+Fix (`bsc/judge.py`, `tests/test_judge.py`): script-agnostic **character-bigram** repetition
+detection, with the real gibberish strings as regression fixtures. Documented limitation:
+*semi-coherent* degradation (e.g. "I'm Qwen… themingergoneantly.abe") still has too much variety
+to catch by repetition and needs an **LLM judge** — so the keyword ASR is an *upper bound* on
+genuine compliance and the paper must report LLM-judge agreement. This is a real, citable
+evaluation pitfall: any steering/ablation study reporting ASR from a keyword classifier without a
+degeneration filter is likely over-counting attack success.
+
+---
+
+## 2026-08-04 — Cross-architecture: the bipolar structure is not a GQA artifact
+
+Fresh harm-contrastive circuit discovery (`runs/discover_circuit/…`), 8 pairs each:
+
+| Model | Attention | Top refusal | Top compliance |
 |---|---|---|---|
 | Qwen2.5-1.5B | GQA 6:1 | L16-H6 (+0.24) | L15-H0 (−0.36) |
-| OLMo-2-7B | **MHA 1:1** | L14-H11 (+0.14) | L30-H14 (−0.38) |
+| OLMo-2-7B | MHA (dense) | L14-H11 (+0.14) | L30-H14 (−0.38) |
+| **OLMoE-1B-7B** | **MHA + MoE** (64 experts) | L9-H13 (+0.15) | **L15-H4 (−0.80)** |
 
-**The compliance-head phenomenon survives in a multi-head-attention model with no grouped-query
-sharing** — and on OLMo the compliance heads are *stronger* in magnitude than the refusal heads.
-So "compliance heads that actively push toward answering" is not a consequence of GQA's KV
-sharing; it recurs in a fully-open, MHA, differently-trained model. That is direct support for
-the bipolar framing being a property of safety-tuned transformers rather than a Qwen quirk.
-
-Two honest caveats:
-1. This discovery uses a different contrast than the legacy maps (different benign prompt set,
-   first-token logit-difference metric), so the **absolute scores are not comparable** to the
-   legacy magnitudes, and the specific top heads differ from the legacy 1.5B map. The
-   cross-model *structural* claim (a compliance side exists and is strong) is what this supports,
-   not head-for-head agreement.
-2. Notably, **L23-H11 — the legacy 1.5B "top refusal head" — appears as a compliance head
-   (−0.34) in this fresh discovery**, consistent with Result 2's finding that it is
-   sign-unstable. Two operationalizations disagree on its sign, which is itself the P0-4 story.
-
-Gated models (Llama-3.1-8B, Gemma-2-9B) were not run in this batch; Gemma requires the verified
-`head_dim=256` geometry that `bsc.models.verify_geometry` now enforces.
+Both a refusal side and a compliance side appear in every architecture, including a sparse
+**mixture-of-experts** model — and in both open (OLMo-family) models the compliance heads are
+*stronger* than the refusal heads. So "compliance heads that actively push toward answering" is
+not a consequence of grouped-query attention or of a Qwen-specific quirk; it recurs across GQA,
+MHA-dense, and MHA-MoE. (Attention is dense in all three — the MoE routing is in the MLP — so the
+head methodology transfers unchanged. Whether compliance is *also* routed through specific experts
+is a separate, open question.)
 
 ---
 
-## Superseded / prior claims
+## 2026-08-04 — Circuit transfer: partial (shared top heads, distinct overall)
 
-See `CLAIMS_AUDIT.md` for the full audit of the legacy results. P0-1 (sparsity ~85%), P0-2
-(KV-cache 85%), P0-3 (Cohen's d mislabel), P0-5 (fabricated figure), and P0-6 (six judges) are
-documented there and do not carry into this repo.
+GCG-contrastive vs harm-contrastive circuits, discovered by identical code on the same model
+(`runs/gcg_transfer/…`, 7B, N=20; `bsc/patching.py::circuit_overlap`):
+
+- Top-11 refusal-head Jaccard overlap **0.22** — shares the dominant **L25-H1** plus L18-H4/H15,
+  L20-H4.
+- Compliance-head Jaccard **0.10**; full per-head rank correlation (Spearman) **≈0.04**.
+
+So GCG and the harm/Crescendo circuit **share a few key top heads but are largely distinct
+overall**. Notably, the *defense* transfers (steering direction defends both) even though the
+*circuits* only partially overlap — evidence that a shared low-dimensional refusal **direction**
+matters more for defense than an identical set of causal heads. (The 1.5B pilot, `n=5`, agreed:
+refusal Jaccard 0.22, compliance 0.47, Spearman 0.51.)
+
+---
+
+## Established anchor (legacy, verified)
+
+`7b_results/adaptive_defense_gcg.json` (N=100, audit-verified): GCG raw ASR **66%**, additive
+bipolar defense **33%**, conditional gate 42%. Consistent with the additive-steering result above
+(a defense built from the refusal direction reduces GCG ASR); the fresh 7B run pushes it further
+(46%→0% at N=24 with the unit-normalized direction and degeneration-aware judge).
+
+---
+
+## Open items / caveats
+
+- **n is small** for the ASR numbers: Crescendo 10 scenarios, GCG 24 prompts. CIs are wide
+  (McNemar p≈0.06 at the best steering point). Scale both up before the paper.
+- **LLM judge** needed to close the degeneration gap and validate the keyword ASR.
+- **Coefficient calibration** (the inverted-U) should be characterised more finely and per-model.
+- Gated models (Llama-3.1, Gemma) not yet run; Gemma needs the verified `head_dim=256` geometry
+  the framework now enforces.
+
+## Superseded
+
+See `CLAIMS_AUDIT.md` for the legacy-results audit (P0-1…P0-6). Note this repo *corrected its own*
+first-pass conclusion (the degeneration/judge bug above) — recorded here rather than quietly
+overwritten, per the honesty rules.
