@@ -89,11 +89,37 @@ Two conclusions:
    (`steering_defense`) reaches the same 10% ASR with cleanly coherent refusals and is easier to
    calibrate.
 
-So for **defense**, the bipolar framing is not vindicated: suppressing compliance heads adds
-little, and per-head steering is more disruptive than a single refusal direction. The compliance
-heads are real and causal *in the circuit* (they exist across architectures, §cross-architecture),
-but ablating them is not a useful defense lever. The cleanest defense is the single residual
-refusal direction.
+So *zero-ablating* the compliance heads adds little. **But that was the wrong intervention** — see
+the next entry, which supersedes this conclusion: the compliance heads *are* a useful lever once
+you steer them with the correct (opposite) sign instead of zeroing them.
+
+### UPDATE — the compliance heads ARE a defense lever, with the opposite sign
+
+`runs/compliance_calibration/…` (1.5B). Instead of zeroing the compliance heads, steer them with
+`β·(refuse−comply)` and sweep β through **both signs**, decomposed against refusal-head steering.
+
+| condition | ASR | coherence (refusal/degen/comply) |
+|---|---|---|
+| baseline | 60% | 59/0/21 |
+| compliance zero-ablate | 60% | no effect |
+| compliance steer **+8** (same sign as refusal heads) | **100%** | 7/0/73 — **attacks!** |
+| compliance steer **−8** (opposite sign) | **20%** | 78/0/2 — coherent refusals |
+| refusal steer +8 & compliance steer −8 (combined) | 10% | 79/0/1 |
+
+**The compliance heads are sign-inverted relative to the refusal heads.** The *same*
+`+(refuse−comply)` steering that defends via refusal heads (`refusal_only`: 60→20% ASR) *attacks*
+via compliance heads (`comp_steer_+8`: 60→100%). Flip the sign and the compliance heads defend on
+their own (`comp_steer_−8`: 60→20%, coherent refusals like "I'm sorry, but for your safety reasons
+I can't provide information about illegal…"). Zero-ablation does nothing because it discards the
+signal instead of reversing it.
+
+This is the mechanistic core of the "bipolar" name made concrete and *causal*: the two head
+populations have **opposite-sign geometry**, so a defense must steer them in opposite directions
+(refusal `+`, compliance `−`). It also explains why the single residual-direction defense works so
+cleanly (it never has to reconcile the two head signs) and why naive per-head or single-sign
+schemes fail. Best combined point: refusal `+8` & compliance `−4/−8` → ~10% ASR, fully coherent.
+(Credit: the sign flip was found by testing the negative direction on the compliance heads, which
+the positive-only first pass had missed.)
 
 ---
 

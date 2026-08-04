@@ -37,6 +37,7 @@ from typing import Any
 from bsc.circuits import load_circuit_map
 from bsc.config import ExperimentConfig
 from bsc.data import get_scenario, load_crescendo_scenarios
+from bsc.determinism import prompt_seed
 from bsc.generation import build_chat_prompt, run_trials
 from bsc.hooks import HeadIntervention, applied, build_bipolar_edits
 from bsc.metrics import mcnemar_paired, wilson_interval
@@ -113,7 +114,7 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
         for name in scenario_names:
             scenario = get_scenario(name)
             prompt = build_chat_prompt(bundle, scenario.messages_up_to_turn(terminal_turn))
-            base_seed = cfg.seed + hash(name) % 10_000
+            base_seed = prompt_seed(cfg.seed, name)
 
             # Baseline: no hooks at all.
             results["baseline"][name] = run_trials(

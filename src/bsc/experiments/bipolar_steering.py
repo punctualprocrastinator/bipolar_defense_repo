@@ -26,13 +26,13 @@ from __future__ import annotations
 
 import csv
 import json
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 from bsc.circuits import load_circuit_map
 from bsc.config import ExperimentConfig
 from bsc.data import DATA_DIR, get_scenario, load_crescendo_scenarios
+from bsc.determinism import prompt_seed
 from bsc.generation import build_chat_prompt, run_trials
 from bsc.hooks import Head, HeadEdit, HeadIntervention, applied, build_bipolar_edits
 from bsc.metrics import mcnemar_paired, wilson_interval
@@ -107,7 +107,7 @@ def _run_condition(bundle, scenario_names, cfg, condition, edits_fn, terminal_tu
     for name in scenario_names:
         scenario = get_scenario(name)
         prompt = build_chat_prompt(bundle, scenario.messages_up_to_turn(terminal_turn))
-        base_seed = cfg.seed + hash(name) % 10_000
+        base_seed = prompt_seed(cfg.seed, name)
         edits = edits_fn()
         if edits is None:  # baseline
             out[name] = run_trials(bundle, prompt, cfg.generation, prompt_id=name,

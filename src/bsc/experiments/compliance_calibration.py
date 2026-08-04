@@ -32,6 +32,7 @@ from typing import Any
 from bsc.circuits import load_circuit_map
 from bsc.config import ExperimentConfig
 from bsc.data import get_scenario, load_crescendo_scenarios
+from bsc.determinism import prompt_seed
 from bsc.experiments.bipolar_steering import _extract_head_steering_vectors
 from bsc.generation import build_chat_prompt, run_trials
 from bsc.hooks import HeadEdit, HeadIntervention, applied
@@ -47,7 +48,7 @@ def _run(bundle, scenario_names, cfg, condition, edits, terminal_turn=5):
     for name in scenario_names:
         scenario = get_scenario(name)
         prompt = build_chat_prompt(bundle, scenario.messages_up_to_turn(terminal_turn))
-        base_seed = cfg.seed + hash(name) % 10_000
+        base_seed = prompt_seed(cfg.seed, name)
         if edits is None:
             out[name] = run_trials(bundle, prompt, cfg.generation, prompt_id=name,
                                    condition=condition, base_seed=base_seed).to_dict()

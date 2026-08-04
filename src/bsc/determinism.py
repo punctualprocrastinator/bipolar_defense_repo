@@ -86,3 +86,19 @@ def trial_seed(base_seed: int, trial_index: int) -> int:
     x = (x * 0x94D049BB133111EB) & 0xFFFF_FFFF_FFFF_FFFF
     x ^= x >> 31
     return x % (2**31 - 1)
+
+
+def prompt_seed(base_seed: int, name: str) -> int:
+    """Stable per-prompt base seed from a name.
+
+    Do NOT use the builtin ``hash(name)`` for this: Python salts string hashing per process
+    (unless PYTHONHASHSEED is fixed), so ``cfg.seed + hash(name)`` gives *different* seeds in two
+    separate runs. Within one run it is fine (baseline and treatments share the process, so the
+    pairing holds), but two runs of the same config would not reproduce each other's baseline —
+    which is exactly the reproducibility guarantee this project promises. hashlib is stable
+    across processes and machines.
+    """
+    import hashlib
+
+    digest = hashlib.blake2b(name.encode("utf-8"), digest_size=8).digest()
+    return (base_seed + int.from_bytes(digest, "big")) % (2**31 - 1)
