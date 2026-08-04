@@ -40,15 +40,14 @@ def _install_nanogcg_shim() -> None:
 import csv  # noqa: E402
 import json  # noqa: E402
 
-from bsc.circuits import load_circuit_map  # noqa: E402
 from bsc.config import ExperimentConfig  # noqa: E402
 from bsc.data import DATA_DIR  # noqa: E402
-from bsc.generation import generate_once, run_trials  # noqa: E402
-from bsc.hooks import Head, HeadEdit, HeadIntervention, ResidualSteering, applied  # noqa: E402
+from bsc.generation import run_trials  # noqa: E402
+from bsc.hooks import HeadEdit, HeadIntervention, ResidualSteering, applied  # noqa: E402
 from bsc.metrics import wilson_interval  # noqa: E402
 from bsc.models import ModelBundle, load_model  # noqa: E402
 from bsc.patching import circuit_overlap, discover_circuit_scores  # noqa: E402
-from bsc.runs import REPO_ROOT, RunContext  # noqa: E402
+from bsc.runs import RunContext  # noqa: E402
 
 # GCG hyperparameters. Small by research standards, sized to run several prompts on one Blackwell
 # in minutes; documented here rather than buried as magic numbers.
@@ -77,18 +76,17 @@ def _extract_caa_direction(bundle: ModelBundle, n_pairs: int, dev_frac: float):
 
 
 def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, Any]:
-    import torch
-
-    _install_nanogcg_shim()
-    import nanogcg
-    from nanogcg import GCGConfig
-
-    root = repo_root or REPO_ROOT
     n_prompts = cfg.data.limit or 5
 
     with RunContext.create("gcg_transfer", cfg, notes=cfg.notes) as run_ctx:
+        # Load the model BEFORE importing nanoGCG: nanoGCG's import monkeypatches transformers in
+        # a way that breaks from_pretrained's dtype handling (load_model also has a fallback).
         bundle = load_model(cfg.model)
         run_ctx.save_json("model.json", bundle.describe())
+
+        _install_nanogcg_shim()
+        import nanogcg
+        from nanogcg import GCGConfig
 
         # --- 1. optimize GCG suffixes -------------------------------------------------
         harmful = _load_harmful(n_prompts)

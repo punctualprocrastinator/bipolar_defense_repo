@@ -268,12 +268,26 @@ def load_model(cfg: ModelConfig) -> ModelBundle:
     # Batched generation must left-pad or the decode step reads padding as context.
     tokenizer.padding_side = "left"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        cfg.name,
-        dtype=resolved.dtype,
-        attn_implementation=attn,
-        trust_remote_code=cfg.trust_remote_code,
-    )
+    # `dtype` is the current kwarg; `torch_dtype` is the legacy name. Some third-party libraries
+    # (e.g. nanoGCG) monkeypatch transformers on import in a way that breaks the `dtype` path, so
+    # fall back rather than fail — the resolved dtype must still be honoured.
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            cfg.name,
+            dtype=resolved.dtype,
+            attn_implementation=attn,
+            trust_remote_code=cfg.trust_remote_code,
+        )
+    except TypeError as exc:
+        if "dtype" not in str(exc):
+            raise
+        log.warning("from_pretrained(dtype=...) rejected (%s); retrying with torch_dtype", exc)
+        model = AutoModelForCausalLM.from_pretrained(
+            cfg.name,
+            torch_dtype=resolved.dtype,
+            attn_implementation=attn,
+            trust_remote_code=cfg.trust_remote_code,
+        )
     model.to(resolved.device)
     model.eval()
     model.requires_grad_(False)  # every experiment here is inference-only; guards against leaks
