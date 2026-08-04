@@ -37,6 +37,7 @@ _register("crescendo_sweep", "Crescendo bipolar-defense multiplier sweep (settle
 _register("logit_lens_sign", "Logit-lens sign check on refusal heads (tests L25-H1 inversion)")
 _register("discover_circuit", "Harm-contrastive circuit discovery for one model")
 _register("steering_defense", "Additive (sign-correct) CAA steering defense on Crescendo")
+_register("gcg_transfer", "GCG circuit discovery + bipolar defense + cross-attack transfer")
 
 
 def build_parser() -> argparse.ArgumentParser:

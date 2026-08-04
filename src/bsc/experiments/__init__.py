@@ -12,4 +12,5 @@ __all__ = [
     "logit_lens_sign",
     "discover_circuit",
     "steering_defense",
+    "gcg_transfer",
 ]

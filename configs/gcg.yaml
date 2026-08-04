@@ -1,0 +1,23 @@
+# GCG transfer experiment. Small n and modest GCG budget to run in minutes on Blackwell.
+seed: 0
+model:
+  name: Qwen/Qwen2.5-1.5B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager
+generation:
+  max_new_tokens: 80
+  n_trials: 4
+intervention:
+  positions: all
+  steering_alpha: 8.0
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_1_5B.json
+  top_k_refusal: 11
+  top_k_compliance: 5
+data:
+  limit: 5
+  dev_fraction: 0.3
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95
