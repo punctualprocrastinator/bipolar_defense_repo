@@ -69,10 +69,24 @@ so "not deployable" is irrelevant; the goal is to localize the causal signal to 
   content of "not linearly steerable." Caveats: top experts fire on only 8–15/50 tokens (per-expert
   credit noisy), and total marginal drop (4.72) > full signal (2.18) → ablations redundant/non-
   additive; robust claim is the aggregate, and it needs multi-prompt aggregation to tighten.
-- **Rung 3 (per-token) and Rung 4 (linear decodability in expert-output space):** not yet run. Rung 4
-  is the sharpest open question — a direction that is linearly *decodable* in expert-output space but
-  not *steerable from the residual* would be a real distinction ("the information is linear but the
-  residual stream isn't its write interface").
+- **Rung 4 (linear decodability):** held-out AUC of a diff-of-means probe separating refuse vs comply.
+  Contrast had to be built carefully — two confounds caught and rejected: (a) harmful-vs-benign =
+  topic (AUC 1.0, the known harmfulness direction, not refusal); (b) direct-vs-Crescendo = format/
+  length (AUC 1.0). The clean version — **direct-harmful prompts split by the model's own behavior**
+  (111 refuse / 39 comply, same single-turn format, both harmful) — gives **AUC ~0.85–0.95** in
+  residual_in, block_out, AND a single expert's output (L12-E9: 0.90), at L9–12.
+  → **Refusal is linearly *decodable* in exactly the bases where *steering* failed.** The residual/
+  block stream *encodes* refusal without being its *write interface*. Plus a decode-vs-cause
+  asymmetry: one expert (L12-E9) decodes at 0.90 yet its ablation drops refusal only ~33%, and ~32
+  experts are needed for 80% of causal credit — **reading ≠ writing ≠ single-point causality**.
+
+**LADDER SYNTHESIS (the mechanistic headline):** In OLMoE refusal is **linearly decodable** (AUC ~0.9,
+even from one expert), **causally distributed** (~32 experts for 80%), and **not steerable from the
+residual** (four intervention families fail). The residual stream *represents* refusal without being
+its *write interface*; the write happens through distributed, nonlinear expert computation — which is
+exactly why steering defenses fail on MoE even though a linear probe reads refusal off the activations
+cleanly. (Caveats: one model; class imbalance 111/39; single-prompt ablation for rung 2.)
+- **Rung 3 (per-token):** not yet run (spatial locality of the assembly).
 
 Probes: `/marimo/moe_patch.py`, `moe_blocksteer.py`, `moe_ablate.py`, `moe_rung1.py`, `moe_rung2.py`
 (exploratory scripts, not yet formalized into `bsc`). Related: SAFEx (2506.17368), RASET (2605.29708).
