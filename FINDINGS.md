@@ -9,6 +9,33 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-08-05 — Circuit Breakers (GraySwanAI RR checkpoint) baseline — BLOCKED on judge quality
+
+Obtained the actual Circuit Breakers checkpoints (`GraySwanAI/Llama-3-8B-Instruct-RR`,
+`Mistral-7B-Instruct-RR`, `llava-...-RR` — all **dense**) to run the ICLR-critical baseline without
+retraining. Ran undefended `Llama-3-8B-Instruct` (ungated NousResearch mirror) vs the RR checkpoint on
+the 35 Crescendo scenarios (×3 seeds = 105) under the **keyword** judge. Raw counts *looked* like CB is
+worse than undefended (comply 57→68, native refusals 48→26), **but manual inspection of CB's outputs
+invalidates that reading** — the keyword judge cannot score a representation-rerouting defense:
+
+- CB's designed mechanism is to **reroute harmful generations into gibberish** (confirmed: `EDR_Evasion`,
+  `Meth`, `Harvested_06/11` → `"aspers/dc.orcarage sourceMapping preferablyQRST…"`). That gibberish is a
+  *successful* defense, but the keyword judge labels some of it **compliance** (degeneration detector
+  misses the Latin-script token-salad) and some **nonresponse**.
+- The keyword judge also mislabels CB's **terse refusals** ("I can't help you with that.") as
+  **compliance**.
+- The **harvested** Crescendo goals are benign-ish ("create a website", "develop an app **with
+  consent**") — "compliance" there is not harmful, so they can't support an ASR claim.
+
+**Conclusion: no CB-vs-ours claim is valid under the keyword judge.** This is the wall PLAN_ICLR.md
+predicted (Phase B.1/B.2): scoring a rerouting defense requires (1) an **LLM/safety judge**
+(Llama-Guard-3-8B or the HarmBench classifier) that separates harmful-compliance / gibberish / refusal,
+and (2) **vetted-harmful** Crescendo goals (drop the benign harvested ones). Do NOT report the 57/68
+numbers as a result. Probes: `/marimo/llama_cb_setup.py`, `/marimo/cb_inspect.py`. Next: build the LLM
+judge, then rerun the 3-way (undefended / CB / bipolar) on genuinely-harmful goals.
+
+---
+
 ## 2026-08-05 — MoE (OLMoE): refusal is expert *computation*, not routing — and it is NOT linearly steerable
 
 Full investigation of whether the bipolar defense transfers to a Mixture-of-Experts model
