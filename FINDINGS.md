@@ -147,6 +147,20 @@ from the residual/block output at any scale tested (1B-active OLMoE and 30B Qwen
 and by extension representation defenses like Circuit Breakers — target a substrate that isn't the write
 interface for refusal in MoE. Probes: `/marimo/qwen3_*.py`.
 
+**Tested the SOTA MoE-steering method (SteerMoE-style expert forcing) — corrects one overclaim, adds a
+critique.** Lit review found published MoE steering methods we hadn't tried: **SteerMoE** (2509.09660,
+expert de/activation via risk-difference scoring), **MASCing** (2604.27818, activation-steering masks),
+ExpertSteer, Geometric Routing. Reimplemented SteerMoE's idea on Qwen3 (force top risk-difference safety
+experts into top-k + suppress compliance experts, every token, L24–43) and tested on Crescendo:
+compliance drops 33→14–17 (so expert *forcing* affects behavior where block-output steering did NOT —
+correcting our "nothing works" overclaim), **but entirely via degeneration** (nonresponse 0→16–17;
+coherent refusal flat at 3–5; samples are gibberish, e.g. "is the does the does does does…"). So even
+the SOTA method does not produce a *coherent-refusal* defense against the multi-turn attack — it disrupts.
+This also **critiques SteerMoE**: its reported "+20% safety" may, on multi-turn attacks and under a
+degeneration-aware judge, be largely the model *breaking* rather than *refusing* (non-compliance ≠ safety
+if it's incoherent). Caveats: reimplementation (not their exact code), rough scoring (20 prompts, K=8),
+their +20% is on other (likely single-turn) benchmarks. Probe: `/marimo/qwen3_steermoe.py`.
+
 ---
 
 ## 2026-08-04 — HEADLINE: which "bipolar defense" actually works
