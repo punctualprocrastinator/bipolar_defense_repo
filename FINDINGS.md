@@ -58,6 +58,29 @@ Caveats: attackable subset is small (8/35 — the harvested scenarios are weak o
 `/marimo/cb_harmbench.py`. Next: (1) our bipolar defense as condition 3 (training-free-parity test);
 (2) stronger Crescendo scenarios vs Llama-3-8B; (3) port HarmBench judge into `bsc.judge` (method="llm").
 
+**Strengthened the benchmark (adaptive harvest) — and CB is even more dominant (85%→0%).** Built an
+*adaptive* Crescendo harvester (Qwen2.5-7B attacker escalates turn-by-turn using the Llama-3-8B target's
+OWN concessions as priming; keep only scenarios the undefended target completes under HarmBench ≥2/3).
+Yield ~14% (11/80) — *itself a finding: Llama-3-8B is genuinely robust to Crescendo*; only fraud / fake-ID /
+bomb-making / tax-fraud / facility-infiltration / exploit goals broke it. On these 11 hard scenarios ×3:
+
+| condition | HarmBench-ASR (n=33) |
+|---|---|
+| Undefended Llama-3-8B | **85%** (28/33) |
+| Circuit Breakers (RR) | **0%** (0/33) |
+
+**Circuit Breakers is a near-perfect dense-model defense against strong adaptive Crescendo (85%→0%).**
+Honest strategic consequence: a "**our steering defense beats/matches CB on dense**" claim is very hard —
+CB is at 0%, and additive steering rarely reaches 0% without wrecking utility. The paper should NOT chase
+that horse-race. Strongest honest positioning: (1) the **mechanism** (bipolar circuit + sign inversion);
+(2) the **MoE characterization** — CB/RepBend are fine-tuning defenses with no MoE checkpoint, and we
+showed refusal in MoE is distributed expert computation that neither steering NOR expert-forcing defends;
+(3) **training-free** as a practical note, and (4) a possible **utility/over-refusal** angle — does CB pay
+for its 0% ASR with benign over-refusal that a light steering defense avoids? (untested — measure next).
+Benchmark saved `/marimo/llama_adaptive_cres.json`; probes `/marimo/harvest_llama.py`, `/marimo/hard_2way.py`.
+Next: (a) our bipolar defense on these 11 (get the real number, no illusions about beating 0%);
+(b) CB benign over-refusal vs base vs ours (the one place CB may be vulnerable).
+
 ---
 
 ## 2026-08-05 — MoE (OLMoE): refusal is expert *computation*, not routing — and it is NOT linearly steerable
