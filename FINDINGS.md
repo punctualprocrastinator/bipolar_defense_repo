@@ -31,8 +31,32 @@ invalidates that reading** — the keyword judge cannot score a representation-r
 predicted (Phase B.1/B.2): scoring a rerouting defense requires (1) an **LLM/safety judge**
 (Llama-Guard-3-8B or the HarmBench classifier) that separates harmful-compliance / gibberish / refusal,
 and (2) **vetted-harmful** Crescendo goals (drop the benign harvested ones). Do NOT report the 57/68
-numbers as a result. Probes: `/marimo/llama_cb_setup.py`, `/marimo/cb_inspect.py`. Next: build the LLM
-judge, then rerun the 3-way (undefended / CB / bipolar) on genuinely-harmful goals.
+numbers as a result. Probes: `/marimo/llama_cb_setup.py`, `/marimo/cb_inspect.py`.
+
+**RESOLVED same day — built + validated the HarmBench judge; CB *does* defend Crescendo (my artifact
+reversed).** Stood up `cais/HarmBench-Llama-2-13b-cls` as the judge (workaround: transformers 5.14 forces
+Llama-2 `tokenizer.model` through tiktoken and crashes, so load the fast `tokenizer.json` from an ungated
+Llama-2 mirror + the cls weights). Validated it on the exact ambiguous cases: CB gibberish→**no**,
+refusal→**no**, real meth synthesis→**yes**, "I'd be happy to help!"→**no**, consented-location-app→**no**.
+Every keyword-judge failure fixed. Judging each generation against the true harmful **goal** also auto-fixes
+the benign-harvested problem (a benign completion of a harmful goal scores "no"). Re-ran undefended vs CB on
+all 35 Crescendo scenarios ×3 seeds under HarmBench:
+
+| condition | HarmBench-ASR (n=105) | base-jailbroken subset (8 scen, N=24) |
+|---|---|---|
+| Undefended Llama-3-8B | **15%** (16/105) | 67% |
+| Circuit Breakers (RR) | **4%** (4/105) | **8%** |
+
+**So Circuit Breakers is a strong multi-turn (Crescendo) defense — the earlier "CB worse than undefended"
+was pure keyword artifact, now retracted.** Strategic consequence for the paper: the "**CB fails on
+multi-turn, ours holds**" thesis is NOT supported on dense Llama-3-8B — CB defends Crescendo well. Our
+remaining differentiators are (a) **training-free** parity (does our steering match CB's ~4% at zero
+fine-tuning?) and (b) **MoE** (no CB checkpoint exists; CB needs per-model retraining) — *but* we already
+showed steering doesn't defend MoE either, so MoE is a *characterization* result, not an "ours wins."
+Caveats: attackable subset is small (8/35 — the harvested scenarios are weak on Llama-3-8B, base ASR only
+15%); a harder Crescendo benchmark is needed for power. Probes: `/marimo/harmbench_judge.py`,
+`/marimo/cb_harmbench.py`. Next: (1) our bipolar defense as condition 3 (training-free-parity test);
+(2) stronger Crescendo scenarios vs Llama-3-8B; (3) port HarmBench judge into `bsc.judge` (method="llm").
 
 ---
 
