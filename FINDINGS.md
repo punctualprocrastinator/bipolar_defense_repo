@@ -9,6 +9,58 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-08-05 — MoE (OLMoE): refusal is expert *computation*, not routing — and it is NOT linearly steerable
+
+Full investigation of whether the bipolar defense transfers to a Mixture-of-Experts model
+(allenai/OLMoE-1B-7B-0924-Instruct: 64 experts, top-8, 16 layers). **Bottom line: a training-free
+steering defense does not work on OLMoE.** But the investigation yielded a clean mechanistic result.
+
+**Setup checks (both pass):** OLMoE refuses 4/5 *direct* harmful requests but complies 100% to the
+Crescendo escalations (classic single-turn-refuses / multi-turn-falls split), so there is a refusal
+signal to study. Differential expert routing exists (some experts fire more when refusing), but
+top experts fire on only ~10 tokens/prompt and rarer ones on 0–3 — the sparse-firing caveat is real.
+
+**Patch-target sanity split (the positive result).** Contrast: direct-harmful (refuses,
+refusal-logit-diff **+2.18**) vs Crescendo-terminal (complies, **−0.95**), last-token. Patch the
+refusing run's state into the complying run, per layer:
+- **Routing patch** (force refusing router indices+scores): per-layer ~−0.9, all-layers only
+  −0.95→−0.59. **Routing barely moves refusal** — consistent with RASET (routing is topic-driven).
+- **Block-output patch** (force refusing MoE-block output): **L9 −0.95→+0.32**, L10/L12 positive —
+  patching expert *computation* at layers 9–12 restores refusal.
+→ **OLMoE's refusal is carried in expert computation (block output, L9–12), not routing.** This is
+also *why* attention-head steering failed: the refusal signal isn't in the attention heads
+(top refusal head only +0.15) — it moved into the MLP/experts.
+
+**But it is not linearly steerable — four intervention families all fail:**
+1. Attention-head steering (multiplicative + additive): no coherent-refusal window.
+2. Residual-direction steering (α 8–32): degenerates (36/36 nonresponse), 0 refusals.
+3. Block-output additive steering (α 0.5–16, the *right* substrate): 0 refusals; narrow cliff
+   between no-effect and degeneration, no coherent window.
+4. Block-output projection-clamp/ablation (clamp the comply/refuse coordinate to the refusing mean,
+   β 0–4): β=1 still 100% *coherent compliance*; only overshoot degenerates. 0 refusals.
+
+The **only** intervention that induced refusal was full block-output *patching* (replacing with the
+entire real refusing activation) — not deployable (circular: needs a refusing activation you don't
+have at inference). Every single-direction edit fails because refusal in OLMoE is **distributed and
+nonlinear** across the expert computation, not a low-dimensional linear direction.
+
+**Honest conclusion.** Refusal's substrate shifts with architecture: a low-dimensional,
+linearly-steerable direction in attention heads on dense models (→ training-free bipolar defense
+works, 89→34%) vs distributed expert computation in MoE (→ training-free steering defenses fail,
+across four families). This *explains* why steering/representation defenses don't transfer to MoE,
+backed by the patch-target split and a full intervention ablation. It is **not** a working MoE
+defense — we cannot claim one. Remaining routes: training-based (SAFEx-style LoRA on
+response-control experts, not training-free), or a larger/less-fragile MoE.
+
+**Open question (decisive):** is this "MoE" or "small/fragile MoE"? OLMoE is 1B-active. Testing
+Qwen3-30B-A3B (the SAFEx model) settles whether the non-steerability is architectural or a
+fragility of tiny MoEs. Not yet run.
+
+Probes: `/marimo/moe_patch.py`, `moe_blocksteer.py`, `moe_ablate.py` (exploratory scripts, not yet
+formalized into `bsc` experiments). Related: SAFEx (2506.17368), RASET (2605.29708).
+
+---
+
 ## 2026-08-04 — HEADLINE: which "bipolar defense" actually works
 
 Two mechanisms have been conflated under "bipolar defense." They give opposite results.
