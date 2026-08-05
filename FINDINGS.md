@@ -112,6 +112,43 @@ This is a *model-mechanism* thread, kept separate from the dense-model ICLR defe
 
 ---
 
+## 2026-08-05 — DECISIVE SCALE TEST: Qwen3-30B-A3B replicates OLMoE — MoE non-steerability is ARCHITECTURAL, not small-model fragility
+
+Ran the MoE investigation on **Qwen3-30B-A3B** (48 layers, 128 experts, top-8, GQA; the SAFEx model)
+to settle whether OLMoE's results were "MoE" or "small/fragile MoE." **They replicate and strengthen.**
+
+- **Setup ideal:** refuses **10/10** direct-harmful, falls to Crescendo **9/10** ASR — strong direct
+  safety, multi-turn vulnerability. (Same router/expert API as OLMoE: `Qwen3MoeTopKRouter` returns
+  (logits,scores,indices); fused `Qwen3MoeExperts` with `gate_up_proj` → clean ablation.)
+- **Patch-target split replicates:** gate/routing patch is **null** (all-layers gate patch = baseline),
+  block-output patch **carries refusal**, localized to **L26–41** (same relative depth as OLMoE L9–12).
+  Refusal is expert *computation*, not routing — on the 30B too.
+- **Steering replicates — and rules out fragility (THE decisive result):** block-output additive
+  (α 4–16) and projection-clamp (β 1–4) steering at L26–38 do **not** defend (Crescendo compliance
+  stays ~92%, 30–35/36). But **Qwen3-30B does NOT degenerate** (nonresponse 0–1; outputs stay
+  coherent; a clamp sample is even a coherent refusal, just an outlier). So OLMoE's degeneration was a
+  small-model artifact — the *real*, scale-robust finding is that **steering the MoE block output does
+  not induce refusal, on a 1B-active OR a 30B model, even when the model stays perfectly coherent.**
+  The MoE substrate isn't the write interface for refusal, independent of scale.
+- **Per-expert credit replicates + strengthens:** ablating experts at L26/27/32/35/36/40: **42
+  (layer,expert) pairs carry 80%; 93 of 768 positive; top expert only ~3%** of the full signal — even
+  MORE distributed than OLMoE (32 pairs; top ~33%). Roughly consistent with SAFEx (~12 experts / 22%):
+  a top dozen carry ~20–40%, but 80% needs ~42. Refusal is genuinely distributed across the experts.
+  Caveats: very low routing frequency (top experts fire on 1–7 of 48 tokens — 128-expert top-8 sparsity
+  makes per-expert credit noisy), single prompt.
+- **Decodability (rung 4) NOT constructible on Qwen3:** it refuses **147/150** direct-harmful, so there
+  is no format-matched comply set in the direct distribution to build a clean refuse-vs-comply probe.
+  A real methodological limit (and itself telling: Qwen3's *direct* refusal is rock-solid; only the
+  *multi-turn* escalation gets through).
+
+**Cross-scale conclusion:** the MoE findings are architectural, not fragility artifacts. Refusal in MoE
+is expert *computation*, distributed across dozens of experts, not in the routing, and **not steerable**
+from the residual/block output at any scale tested (1B-active OLMoE and 30B Qwen3). Steering defenses —
+and by extension representation defenses like Circuit Breakers — target a substrate that isn't the write
+interface for refusal in MoE. Probes: `/marimo/qwen3_*.py`.
+
+---
+
 ## 2026-08-04 — HEADLINE: which "bipolar defense" actually works
 
 Two mechanisms have been conflated under "bipolar defense." They give opposite results.
