@@ -81,6 +81,23 @@ Benchmark saved `/marimo/llama_adaptive_cres.json`; probes `/marimo/harvest_llam
 Next: (a) our bipolar defense on these 11 (get the real number, no illusions about beating 0%);
 (b) CB benign over-refusal vs base vs ours (the one place CB may be vulnerable).
 
+**CB over-refusal check — CB does NOT over-refuse on our benign set (differentiator not established).**
+Ran base vs CB on 20 benign single-turn + 3 benign *multi-turn* prompts (dual-use topics designed to
+false-trigger a rerouting defense: a thriller author asking a "villain chemist" for in-character dialogue,
+a teacher on WWII causes, a nurse on acetaminophen-overdose ER treatment). Both models complied on all 23
+(base 20/20 + 3/3; CB 20/20 + 3/3), and CB produced the *same* helpful thriller-chemist dialogue as base.
+So on this set CB pays no measurable benign-utility cost for its 0% ASR — consistent with the CB paper's
+minimal-capability-loss claim. Caveat: 23 prompts, single seed — a proper exaggerated-safety benchmark
+(XSTest / OR-Bench) is needed before claiming CB has *any* utility cost; the easy differentiator is not
+established. Probe: `/marimo/cb_overrefuse.py`.
+
+**Bottom line for the dense defense story:** on Llama-3-8B, Circuit Breakers is a near-perfect,
+utility-preserving defense (85%→0%, no over-refusal here). The paper must NOT claim to beat it on dense.
+The defensible contributions are the **mechanism** (bipolar circuit + sign inversion), the **MoE
+characterization** (no CB checkpoint; refusal is undefendable distributed expert computation), and
+**training-free** operation — with the dense CB comparison reported honestly as "CB is stronger, at the
+cost of full fine-tuning; ours is a training-free inference-time intervention."
+
 ---
 
 ## 2026-08-05 — MoE (OLMoE): refusal is expert *computation*, not routing — and it is NOT linearly steerable
