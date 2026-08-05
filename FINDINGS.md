@@ -56,8 +56,27 @@ response-control experts, not training-free), or a larger/less-fragile MoE.
 Qwen3-30B-A3B (the SAFEx model) settles whether the non-steerability is architectural or a
 fragility of tiny MoEs. Not yet run.
 
-Probes: `/marimo/moe_patch.py`, `moe_blocksteer.py`, `moe_ablate.py` (exploratory scripts, not yet
-formalized into `bsc` experiments). Related: SAFEx (2506.17368), RASET (2605.29708).
+**Decomposition ladder (reframed as interpretability characterization, not defense — full white-box,
+so "not deployable" is irrelevant; the goal is to localize the causal signal to something minimal):**
+- **Rung 1 (gate weights):** patch the refusing router's *continuous* weights onto the complying
+  run's clean-selected experts. ~Null (all-layers −0.95→−0.72, vs block-patch's −0.95→+0.32 from L9
+  alone). So refusal is **not in the gate** (neither discrete selection nor continuous weights) —
+  it's in the expert *outputs* E_i(x). Consistent with RASET (topic-driven routing).
+- **Rung 2 (per-expert credit, ablation at L9–12):** zero one expert's `gate_up_proj` at a time,
+  rank by refusal-logit-diff drop on the refusing run. **~32 (layer,expert) pairs carry 80% of the
+  ablation credit; 119/256 pairs contribute; top expert (L12-E9) only ~33% of the full signal.**
+  Refusal is **distributed across dozens of experts, not a sparse handful** — the precise mechanistic
+  content of "not linearly steerable." Caveats: top experts fire on only 8–15/50 tokens (per-expert
+  credit noisy), and total marginal drop (4.72) > full signal (2.18) → ablations redundant/non-
+  additive; robust claim is the aggregate, and it needs multi-prompt aggregation to tighten.
+- **Rung 3 (per-token) and Rung 4 (linear decodability in expert-output space):** not yet run. Rung 4
+  is the sharpest open question — a direction that is linearly *decodable* in expert-output space but
+  not *steerable from the residual* would be a real distinction ("the information is linear but the
+  residual stream isn't its write interface").
+
+Probes: `/marimo/moe_patch.py`, `moe_blocksteer.py`, `moe_ablate.py`, `moe_rung1.py`, `moe_rung2.py`
+(exploratory scripts, not yet formalized into `bsc`). Related: SAFEx (2506.17368), RASET (2605.29708).
+This is a *model-mechanism* thread, kept separate from the dense-model ICLR defense paper.
 
 ---
 
