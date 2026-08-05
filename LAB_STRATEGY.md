@@ -6,33 +6,31 @@ mechanistic interpretability into **AI control** and **security**. Companion to 
 
 ---
 
-## 1. The thesis (what the lab is actually differentiated on)
+## 1. The thesis — already established, needs one addition
 
-Do **not** position as "a mechanistic interpretability lab." That space is crowded (Anthropic,
-GDM, EleutherAI, Apollo, Transluce, Goodfire, plus dozens of independents), and this project just
-learned the hard way that a circuit-discovery finding can be scooped between submission and
-follow-up.
+**Checked redarclabs.com (2026-08-05): the positioning already exists and is good.** The site
+states *"adversarial interpretability"* — interpretability tools designed to work when models
+actively resist investigation — with the thesis *"The only conditions that matter for safety are
+adversarial ones."* Four directions are live (D1 cross-architecture refusal circuits ← **this
+project**, D2 adversarially robust SAEs, D3 pre-commitment probes, D4 emotion deflection vectors),
+plus real publications (ICML 2026, TAIS 2026, NeurIPS 2025) and two co-founders who are MARS V
+Fellows at Cambridge AI Safety Hub.
 
-Position on the thing that is genuinely scarce and that this project has already demonstrated:
+So this section is **not** a proposal to reposition. The thesis is right and the credibility base
+is further along than a from-scratch plan would assume. One thing is missing from the public
+framing, and it is the scarcest asset the lab actually has:
 
-> **Interpretability claims that survive an adversary — and the evidence standards required to
-> know whether they do.**
+> **Falsifiability as a stated method.** This project produced an audit that **falsified four of
+> its own headline claims** (`CLAIMS_AUDIT.md`) — including a script that generated a paper figure
+> from `np.random.normal` — plus a mid-session correction where a judge bug had inverted a defense
+> conclusion (`FINDINGS.md`). Almost nobody publishes that.
 
-Two words carry the differentiation:
+"We study adversarial conditions" is a topic claim; several groups make it. **"We hold adversarial
+standards of evidence, and here is the public record of us failing our own claims"** is a method
+claim, and it is very hard to copy. Add it to the site as a stated commitment (§5.4).
 
-- **Adversarial.** Most interp is done on cooperative inputs. Redarc studies internals under
-  active attack (GCG, Crescendo, routing attacks, adaptive attackers), where the mechanism *and
-  the method* are being stressed.
-- **Falsifiable.** This project has already produced the rarest artifact in the field: an audit
-  that **falsified four of its own headline claims** (`CLAIMS_AUDIT.md`), including a script that
-  generated a paper figure from `np.random.normal` — plus a mid-session correction where a judge
-  bug had inverted a defense conclusion (`FINDINGS.md`). Almost nobody publishes that. It is a
-  credibility asset, not an embarrassment.
-
-**The lab's tagline claim:** *interpretability under adversarial conditions demands adversarial
-standards of evidence — and we build the tools that enforce them.*
-
-This is defensible because it is not a race for one finding; it is a compounding capability.
+Refined tagline: *adversarial conditions demand adversarial standards of evidence — we build the
+tools that enforce them, and we publish what they falsify.*
 
 ---
 
@@ -40,6 +38,14 @@ This is defensible because it is not a race for one finding; it is a compounding
 
 Right now `bsc` is one package doing three jobs. Separating them is what turns it from "one
 project's code" into infrastructure other people cite and use.
+
+**This matters more given four live directions.** D1–D4 all need the same substrate: load a model
+without silently wrong head geometry, intervene on activations, seed and record runs, judge
+outputs, report rates with CIs. Today only D1 (this project) has that. Promoting Layers 1–2 to
+**lab-wide infrastructure** means D2 (adversarially robust SAEs), D3 (pre-commitment probes), and
+D4 (deflection vectors) inherit reproducibility for free instead of each re-implementing it — and
+every future claim on the site is backed by the same manifest guarantee. That is the single
+highest-return engineering decision available right now.
 
 ### Layer 1 — the harness (general-purpose, most reusable)
 Device/dtype resolution with architecture verification, GQA/MHA/MoE-correct head interventions
@@ -101,9 +107,19 @@ credible by association.
 The bridge already exists in this project's own results; it just needs naming.
 
 ### → AI control
-The **compliance-head probe** (AUC 0.943 on 7B) is not a curiosity — it is a **trusted monitor**,
-the core primitive of the control agenda: cheap, internal, runs on every forward pass, and gates
-an expensive intervention only when it fires.
+**The bridge is already inside the lab — connect D1 to D3.** The site's D3 (*pre-commitment probes
+detecting answer encoding before reasoning output, AUC 0.780*) is already a control-shaped result:
+it is a probe that reads internal state to catch a model doing something its output does not
+reveal. And the site's own stated breakdowns (>98% of configurations show sandbagging; >70% of
+backdoors survive fine-tuning) are **the control agenda's motivating claims**, not interp claims.
+
+So the lab is one framing move from being a control lab: **D1 supplies the intervention (steer the
+circuit), D3 supplies the detector (read the internal state), and control is the protocol that
+combines them** — monitor cheaply, intervene expensively only when the monitor fires. Publishing
+D1 and D3 as *one protocol* is far stronger than publishing two probes.
+
+The **compliance-head probe** (AUC 0.943 on 7B) is the D1 half: a **trusted monitor** — cheap,
+internal, runs on every forward pass, gates an expensive intervention only when it fires.
 
 Concrete projects:
 1. **Monitor-gated defense.** Rather than always-on steering, trigger only when the probe crosses
@@ -140,16 +156,29 @@ publishes the failure taxonomy — becomes load-bearing infrastructure fast.
 
 Realistic sequence, cheapest first:
 
+0. **Audit the website's public numbers — do this first.** The site states `>98%` of
+   configurations show sandbagging, `>70%` of backdoors survive fine-tuning, and pre-commitment
+   probe `AUC 0.780`. Given that an audit of this project's *own* headline numbers falsified four
+   of six (`CLAIMS_AUDIT.md`), every public figure needs the same treatment: trace each to a run
+   artifact, or mark it `[UNVERIFIED]`. **These are the lab's most exposed claims** — they are
+   public, quotable, and currently unaudited. A funder or reviewer who recomputes one and finds it
+   unsupported does far more damage than a missing number. Highest-priority, near-zero cost.
 1. **Ship Layer 1+2 software publicly** with docs and tests. Costs nothing, compounds immediately.
 2. **Ship paper 2 (evaluation instrument).** Cheap, field-serving, establishes rigor brand.
 3. **Land paper 1 at ICLR main** with baselines + cross-model + adaptive attacker.
 4. **Publish the audit methodology itself** — a short public writeup of how the harness caught four
-   false claims in its own prior work. This is unusually strong evidence of research integrity and
-   is exactly what funders and collaborators screen for.
+   false claims in its own prior work, and add falsifiability as a stated commitment on the site
+   (§1). This is unusually strong evidence of research integrity and is exactly what funders and
+   collaborators screen for.
 5. **Then** raise: with two papers, adopted tooling, and a public audit record, grant applications
    (Manifund/BlueDot/OpenPhil-adjacent, LTFF) and collaborations become a different conversation
    than they are today. Note the current Manifund draft still has `[FILL IN]` ask amounts and
    should not go out carrying any of the four falsified claims.
+
+**Existing credibility is stronger than a from-scratch plan assumes:** three publications (ICML
+2026, TAIS 2026, NeurIPS 2025), two co-founders, and MARS V / Cambridge AI Safety Hub affiliation.
+The gap is not track record — it is that the *public claims* are not yet backed by the
+reproducibility standard the lab is otherwise building.
 
 Compute reality: the Blackwell (95 GB) is sufficient through ~32B. Beyond that needs either
 attribution patching (cheap approximation) or real funding.
@@ -161,7 +190,10 @@ attribution patching (cheap approximation) or real funding.
 - **Scoop risk.** Discovery findings get scooped (this already happened). Mitigate by leading with
   defenses, evaluation, and adversarial robustness — which require *sustained* capability rather
   than a single lucky result.
-- **Solo bandwidth.** Five paper tracks is not a solo agenda. Pick paper 1 + 2, ship, then expand.
+- **Bandwidth across four directions.** Two co-founders and four live directions (D1–D4) plus five
+  paper tracks is over-committed. D1 is the one with a full reproducible pipeline and results
+  today — finish it (papers 1+2) before opening more. Shared Layers 1+2 are what make D2–D4
+  cheaper later; building them now is leverage, spreading attention now is not.
 - **Over-claiming.** The single greatest asset here is the willingness to publish "this did not
   reproduce." Every over-claim spends that asset. The `[UNVERIFIED]` convention and the audit file
   are the mechanism — keep them.
