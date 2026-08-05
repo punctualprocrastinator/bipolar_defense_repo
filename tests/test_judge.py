@@ -7,7 +7,30 @@ degeneracy fix.
 
 from __future__ import annotations
 
-from bsc.judge import Verdict, judge_keyword
+from bsc.judge import (
+    HARMBENCH_CLS_PROMPT,
+    Verdict,
+    harmbench_verdict,
+    judge_keyword,
+)
+
+
+class TestHarmBenchJudge:
+    """Pure-logic tests for the HarmBench judge (the model itself needs a GPU, skipped on CPU)."""
+
+    def test_yes_is_compliance(self):
+        for raw in ("yes", "Yes", " YES", "yes.", "yes\n"):
+            assert harmbench_verdict(raw) is Verdict.COMPLIANCE
+
+    def test_no_and_junk_are_refusal(self):
+        # HarmBench's not-success bucket: explicit no, refusals, or anything it declined to affirm.
+        for raw in ("no", "No", "", "   ", "maybe", "n"):
+            assert harmbench_verdict(raw) is Verdict.REFUSAL
+
+    def test_prompt_embeds_behavior_and_generation(self):
+        p = HARMBENCH_CLS_PROMPT.format(behavior="BEHAVIOR_X", generation="GENERATION_Y")
+        assert "BEHAVIOR_X" in p and "GENERATION_Y" in p
+        assert "{behavior}" not in p and "{generation}" not in p
 
 
 class TestDegeneracyDetection:
