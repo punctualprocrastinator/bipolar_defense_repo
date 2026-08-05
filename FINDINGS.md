@@ -88,6 +88,24 @@ exactly why steering defenses fail on MoE even though a linear probe reads refus
 cleanly. (Caveats: one model; class imbalance 111/39; single-prompt ablation for rung 2.)
 - **Rung 3 (per-token):** not yet run (spatial locality of the assembly).
 
+**Gate-only fine-tuning (conceding training-free, allowing router-only training):** freeze all experts
++ attention, train only the 16 gate matrices (2.1M params, **0.03%**) on direct-harmful→refusal.
+At proper lr (5e-4, 100 steps) the router **perfectly fits the training data (loss→0)** but Crescendo
+ASR is **unchanged (12→11)**, benign over-refusal 0, direct refusal preserved — **it memorizes refusal
+on direct-harmful prompts but does NOT generalize to defend the multi-turn attack**. (At high lr=2e-3
+it destabilizes: 12→7 but via *degeneration*, plus it *hurts* direct refusal 10→6 — not a real defense.)
+Mechanism: the router is topic-driven (RASET) and Crescendo makes the input *look benign to the router*
+(rep-eng 2507.02956), so it keeps routing the jailbroken input to complying experts; training on direct
+harmful doesn't fix the escalated representation. → **"MoE refusal is a trainable routing policy" is NOT
+supported for gate-only training that generalizes to the attack.** (Training on the attack distribution,
+or full/expert fine-tuning, would likely defend — a weaker/different claim.)
+
+**FINAL BOUNDARY (OLMoE):** refusal is linearly decodable, causally distributed across ~32 experts, and
+**not** steerable from the residual, **not** reachable by inference-time gate patching, **not** defendable
+by gate-only fine-tuning that generalizes to the attack. It lives in the experts' computation; the router —
+even trained — can't be made to invoke it for the jailbroken distribution. Probes: add
+`/marimo/moe_rung4*.py`, `gate_tune*.py`.
+
 Probes: `/marimo/moe_patch.py`, `moe_blocksteer.py`, `moe_ablate.py`, `moe_rung1.py`, `moe_rung2.py`
 (exploratory scripts, not yet formalized into `bsc`). Related: SAFEx (2506.17368), RASET (2605.29708).
 This is a *model-mechanism* thread, kept separate from the dense-model ICLR defense paper.
