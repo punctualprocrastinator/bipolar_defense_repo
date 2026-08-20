@@ -3,7 +3,44 @@
 Dated 2026-08-04. The target is an ICLR **main-conference** paper, not a workshop. This plan is
 built on the novelty review (see bottom) and the results already in `FINDINGS.md`.
 
-## 0. The thesis (locked)
+---
+
+## ⚠ STATUS UPDATE 2026-08-05 — thesis pivot forced by evidence (read this first)
+
+Two experiments this day materially changed the paper's viable thesis. The §0 thesis below is kept
+as a record but is **partly superseded**; see FINDINGS 2026-08-05 entries for the runs.
+
+1. **Built + validated a real judge (HarmBench classifier).** The keyword judge cannot score
+   representation-rerouting defenses (it miscounts gibberish and terse refusals as compliance).
+   `bsc.judge.HarmBenchJudge` is now the instrument of record for ASR. Every dense ASR number below
+   must be re-derived under it.
+2. **Circuit Breakers DOMINATES on dense — including multi-turn.** With the real judge, the released
+   `GraySwanAI/Llama-3-8B-Instruct-RR` checkpoint drives Crescendo **85%→0%** on a hard adaptive
+   benchmark, with **no benign over-refusal** on our set. Our own training-free bipolar steering only
+   reaches 0% **by degenerating the model into gibberish** (no coherent-refusal regime found; α cliff
+   from 85%→0%). **So "CB fails on multi-turn / our defense beats CB on dense" is DEAD.**
+
+**Revised thesis (what the paper can honestly claim):**
+- **Lead with mechanism + generalization, not a dense defense win.** The bipolar circuit
+  (refusal vs compliance heads), the **sign-inversion** cautionary result, and cross-attack /
+  cross-architecture *characterization* are the contribution.
+- **MoE is the differentiator CB cannot touch:** representation/fine-tuning defenses (CB, RepBend)
+  have no MoE checkpoint and would need per-model retraining; and we show refusal in MoE is
+  *distributed expert computation* that neither steering nor SteerMoE-style expert-forcing defends
+  coherently. This is an honest negative/characterization result, not "ours wins."
+- **Training-free** is a positioning note (inference-time, no fine-tuning), NOT a SOTA claim — CB is
+  stronger on dense at the cost of full fine-tuning.
+- **Where our steering defense number is real** (the earlier 89→34% etc.) it was on weaker models /
+  keyword judge; those must be re-run under HarmBench before use, and framed as "reduces ASR at zero
+  training cost," not "matches CB."
+
+**Immediate open items** (see STATUS.md): finish the fine α-sweep (confirm no coherent steering
+regime + quantify benign-utility cost); re-derive the Qwen bipolar-defense numbers under HarmBench;
+pull the sandbox probe scripts + the 11-scenario adaptive benchmark into the repo when molab is back.
+
+---
+
+## 0. The thesis (locked — 2026-08-04, partly superseded by the 2026-08-05 status update above)
 
 **Do NOT frame this as "we discovered a bipolar refusal/compliance circuit."** That is already
 published — *The Struggle Between Continuation and Refusal* (arXiv 2603.08234) identifies opposing
