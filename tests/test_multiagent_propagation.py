@@ -54,3 +54,32 @@ def test_bipolar_touches_both_populations():
 def test_unknown_condition_raises():
     with pytest.raises(ValueError):
         condition_edits("bogus", REFUSAL, COMPLIANCE, _cfg())
+
+
+# -- additive (sign-correct) mode ------------------------------------------------------------
+
+import torch  # noqa: E402  (kept local to the additive tests)
+
+_VECS = {h: torch.ones(4) for h in REFUSAL + COMPLIANCE}
+
+
+def test_additive_undefended_still_identity():
+    assert condition_edits("undefended", REFUSAL, COMPLIANCE, _cfg("additive_steering"), _VECS) == {}
+
+
+def test_additive_refusal_only_steers_only_refusal_heads():
+    edits = condition_edits("refusal_only", REFUSAL, COMPLIANCE, _cfg("additive_steering"), _VECS)
+    assert set(edits) == set(REFUSAL)
+    # additive: a vector is attached and alpha is non-zero (not a multiplicative scale).
+    assert all(e.vector is not None and e.alpha == 1.0 and e.scale == 1.0 for e in edits.values())
+
+
+def test_additive_bipolar_steers_both_populations_additively():
+    edits = condition_edits("bipolar", REFUSAL, COMPLIANCE, _cfg("additive_steering"), _VECS)
+    assert set(edits) == set(REFUSAL) | set(COMPLIANCE)
+    assert all(e.vector is not None for e in edits.values())
+
+
+def test_additive_without_vectors_raises():
+    with pytest.raises(ValueError):
+        condition_edits("bipolar", REFUSAL, COMPLIANCE, _cfg("additive_steering"), None)

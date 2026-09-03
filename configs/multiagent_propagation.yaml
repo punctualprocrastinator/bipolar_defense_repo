@@ -4,10 +4,12 @@
 # ASR is scored by the HarmBench classifier inside the experiment (instrument of record); the
 # keyword judge is used only for the degeneration (NONRESPONSE) share.
 #
-# NOTE (2026-08-05): intervention.mode defaults to multiplicative, but the project's own finding is
-# that multiplicative head amplification is SIGN-INVERTED and makes ASR worse; the clean bipolar
-# result was additive. Sweep mode/params here and read the degeneration column — do not assume the
-# multiplicative "bipolar" defends. This config is the apparatus, not a claim.
+# NOTE (2026-08-05): the project's own finding is that multiplicative head amplification is
+# SIGN-INVERTED and can make ASR WORSE; the clean bipolar result was ADDITIVE. So the recommended
+# mode is additive_steering — the experiment fits sign-correct per-head directions on the fly (a
+# harmful-vs-benign difference-of-means on an AdvBench slice DISJOINT from the attack goals), so no
+# external vectors file is needed. Run BOTH modes and read the degeneration column: a condition
+# whose ASR only drops alongside a degeneration jump is breaking the model, not defending it.
 seed: 0
 attacker_model: ""            # "" = use the receiver as a (weak) attacker persona; set a real peer model
 model:
@@ -21,9 +23,10 @@ generation:
   temperature: 0.7
   top_p: 0.9
 intervention:
-  mode: multiplicative         # multiplicative | additive_steering (needs steering_vectors_path)
+  mode: additive_steering      # additive_steering (sign-correct, recommended) | multiplicative (cautionary baseline)
   positions: last
-  refusal_multiplier: 3.0
+  steering_alpha: 8.0          # additive step size; sweep this
+  refusal_multiplier: 3.0      # used only by multiplicative mode
   ablate_compliance: true
   compliance_scale: 0.0
 circuit:

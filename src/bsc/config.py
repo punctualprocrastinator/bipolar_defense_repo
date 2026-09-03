@@ -161,8 +161,9 @@ class ExperimentConfig:
             errors.append(f"intervention.positions must be last|all, got {self.intervention.positions!r}")
         if self.intervention.mode not in {"multiplicative", "additive_steering", "none"}:
             errors.append(f"intervention.mode invalid: {self.intervention.mode!r}")
-        if self.intervention.mode == "additive_steering" and not self.intervention.steering_vectors_path:
-            errors.append("intervention.mode=additive_steering requires steering_vectors_path")
+        # additive_steering vectors may come from steering_vectors_path OR be fit on-the-fly by the
+        # experiment (e.g. multiagent_propagation.fit_head_directions). So the path is not required
+        # here; an experiment that genuinely needs a file raises clearly when it looks for one.
         if self.judge.method not in {"keyword", "llm", "both"}:
             errors.append(f"judge.method invalid: {self.judge.method!r}")
         if self.judge.method in {"llm", "both"} and not self.judge.llm_model:
