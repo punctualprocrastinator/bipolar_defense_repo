@@ -16,4 +16,5 @@ __all__ = [
     "bipolar_steering",
     "compliance_calibration",
     "harvest_scenarios",
+    "multiagent_propagation",
 ]

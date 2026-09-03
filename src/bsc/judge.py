@@ -261,11 +261,15 @@ class HarmBenchJudge:
         from huggingface_hub import hf_hub_download
         from transformers import AutoModelForCausalLM, PreTrainedTokenizerFast
 
+        from bsc.config import ModelConfig
         from bsc.models import resolve_device
 
         self._torch = torch
         self.max_generation_chars = max_generation_chars
-        self.device, self.dtype = resolve_device()
+        # The judge is its own model; resolve device/dtype the same way as any other (bf16 on
+        # Blackwell, fp16 on pre-Ampere, fp32 on CPU) rather than assuming cuda.
+        resolved = resolve_device(ModelConfig(name=HARMBENCH_CLS_MODEL))
+        self.device, self.dtype = resolved.device, resolved.dtype
 
         tok_file = None
         for mirror in HARMBENCH_TOKENIZER_MIRRORS:

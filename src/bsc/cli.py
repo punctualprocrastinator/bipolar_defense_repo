@@ -41,6 +41,7 @@ _register("gcg_transfer", "GCG circuit discovery + bipolar defense + cross-attac
 _register("bipolar_steering", "Per-head refusal steering + compliance ablation (true bipolar)")
 _register("compliance_calibration", "Steer compliance heads toward refusal (calibrated) vs zero-ablate")
 _register("harvest_scenarios", "Generate + validate more Crescendo scenarios to grow the benchmark")
+_register("multiagent_propagation", "Two-agent jailbreak propagation; does bipolar steering intercept it (HarmBench)")
 
 
 def build_parser() -> argparse.ArgumentParser:

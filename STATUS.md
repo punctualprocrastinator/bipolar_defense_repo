@@ -16,6 +16,14 @@ lives only on the (ephemeral) molab sandbox and must be pulled into the repo.
   {no-effect, degenerate}; MoE non-defendability is robust. FINDINGS 2026-08-05.
 - **Strategic pivot recorded** — PLAN_ICLR.md status block + FINDINGS: the dense defense head-to-head
   is not winnable vs CB; reposition around mechanism + MoE + training-free.
+- **Two-agent propagation harness** — `bsc.experiments.multiagent_propagation` (+ config + tests, 101
+  pass). Live attacker agent A escalates against receiver B (replacing the legacy hardcoded assistant
+  turns), transcripts frozen for pairing, four conditions (undefended / refusal-only / compliance-only
+  / bipolar) on B's terminal turn, **HarmBench-judged** with the degeneration share reported, paired
+  McNemar + Wilson CIs, AdvBench attack slice disjoint from the fit slice. This is the Day-2 apparatus
+  (BIPOLARMULTIAGENT4DAY.md); device-agnostic, dry-run verified, **needs a GPU to run**.
+- **Bug fix** — `HarmBenchJudge` called `resolve_device()` with the wrong signature (it takes a
+  `ModelConfig` and returns a `ResolvedDevice`); fixed so the judge is device-agnostic, not cuda-only.
 
 ## In flight / interrupted (sandbox dropped mid-run)
 
@@ -53,5 +61,7 @@ they must be ported to `bsc.experiments` modules that are config-driven, device-
 manifests:
 
 - `circuit_breakers_eval` — load a base + its RR checkpoint (+ optional our-defense), HarmBench-score
-  on a Crescendo/GCG benchmark, report ASR with CIs. **Started** (see `bsc/experiments/`).
-- `adaptive_harvest` — the turn-by-turn attacker/target/HarmBench-validated harvester.
+  on a Crescendo/GCG benchmark, report ASR with CIs. **Still to port** (probes: `hard_2way.py`,
+  `cb_overrefuse.py`).
+- `adaptive_harvest` — the turn-by-turn attacker/target/HarmBench-validated harvester. **Now subsumed**
+  by `multiagent_propagation` Phase 1 (`build_transcript`); the standalone harvester can reuse it.

@@ -1,0 +1,38 @@
+# Two-agent jailbreak propagation on Qwen2.5-7B (dense arm, BIPOLARMULTIAGENT4DAY.md Day 2).
+# Receiver B = Qwen2.5-7B (defended); attacker A = Qwen2.5-7B-Instruct as a compromised peer
+# (set attacker_model to a *different* model for a stronger, non-self attacker).
+# ASR is scored by the HarmBench classifier inside the experiment (instrument of record); the
+# keyword judge is used only for the degeneration (NONRESPONSE) share.
+#
+# NOTE (2026-08-05): intervention.mode defaults to multiplicative, but the project's own finding is
+# that multiplicative head amplification is SIGN-INVERTED and makes ASR worse; the clean bipolar
+# result was additive. Sweep mode/params here and read the degeneration column — do not assume the
+# multiplicative "bipolar" defends. This config is the apparatus, not a claim.
+seed: 0
+attacker_model: ""            # "" = use the receiver as a (weak) attacker persona; set a real peer model
+model:
+  name: Qwen/Qwen2.5-7B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager   # head hooks need eager
+generation:
+  max_new_tokens: 130
+  n_trials: 8
+  temperature: 0.7
+  top_p: 0.9
+intervention:
+  mode: multiplicative         # multiplicative | additive_steering (needs steering_vectors_path)
+  positions: last
+  refusal_multiplier: 3.0
+  ablate_compliance: true
+  compliance_scale: 0.0
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_7B.json
+  selection: top_k
+  top_k_refusal: 11
+  top_k_compliance: 5
+data:
+  limit: 20                    # number of attack goals (AdvBench slice starts at index 120, disjoint)
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95
