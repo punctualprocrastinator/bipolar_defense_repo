@@ -39,8 +39,13 @@ clearly lower — **the effect is the peer FRAMING, not preamble length.** Behav
 `peer_vs_request/…` (a0eb645).
 
 **Remaining caveats / next fixes:**
-- **refusal-logit-diff is a crude summed-opener metric** (large magnitude; sign is what's robust) —
-  validate it correlates with actual refusal (CLAUDE.md §2.3).
+- ~~**refusal-logit-diff is a crude summed-opener metric** — validate it correlates with actual
+  refusal.~~ **DONE (E1, offline):** self-consistency r=**+0.948** vs the model's own greedy first
+  token (refusal-opener mean +73.5 vs comply-opener −141.9); behavioral direction correct (jailbroken
+  +27 vs refused +61; weak r=−0.14 only from 5/90 successes on the robust 7B). Metric validated.
+- **Layer figure (logit lens):** the request-vs-peer refusal-disposition gap is a **late-layer**
+  effect — curves identical at L0, diverge only in the last ~5 layers, peak gap +15 at **L25**
+  (of 29). Consistent with Safety Relay's "harm detected, refusal expression attenuated late."
 - **Head-mass metric uninformative here** (5.80 vs 5.76 refusal; 5.07 vs 4.86 compliance) — the output
   refusal-logit-diff carries the signal; refine head-mass (normalize / use the difference-of-means
   projection, not raw dot).

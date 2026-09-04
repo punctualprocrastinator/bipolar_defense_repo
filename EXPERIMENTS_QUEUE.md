@@ -43,11 +43,17 @@ not post-hoc.
    launch until that's picked, or they null out like the self-attack run.
 5. **E6** last (most models to load).
 
-## Open decision before E4/E5/E6 (needs a pick, not GPU)
+## Attacker decision (2026-09-04) — DECIDED
 
-**Which attacker model?** Options: (a) a larger Qwen (Qwen2.5-32B/72B) as a stronger same-family
-peer; (b) a deliberately less-aligned instruct model; (c) keep self-attack but strengthen the
-compromised-peer system prompt. This choice gates every defense arm — decide before spending GPU.
+**Attacker for E4/E5/E6 = a deliberately less-aligned instruct model** (option b). Writes genuinely
+harmful escalations → raises undefended ASR where defenses have room; the most realistic "compromised
+peer". TODO: pick the exact checkpoint (an abliterated/uncensored 7-8B) and confirm it loads under
+transformers 5.14 before the full run; smoke it (L1) first.
+
+## E1 — DONE (2026-09-04): metric validated
+`refusal_logit_diff` self-consistency **r=+0.948** vs the model's own greedy first token (refusal-opener
+mean +73.5 vs comply-opener −141.9); behavioral direction correct (jailbroken +27 vs refused +61, weak
+r=−0.14 only because 5/90 successes on the robust 7B). The mechanism instrument is validated.
 
 ## Done this session (for reference)
 - L1 smoke ✓ · L2 propagation (self-attack null, controls pass) ✓ · M1 + length control ✓
