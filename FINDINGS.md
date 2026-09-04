@@ -9,6 +9,36 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-04 — E5: distinct-attacker propagation — bipolar defense shows a coherent trend (underpowered)
+
+`multiagent_propagation`, receiver Qwen2.5-7B, **distinct compromised-peer attacker**
+`huihui-ai/Qwen2.5-7B-Instruct-abliterated-v2` (n=20, additive α=8, batched, HarmBench).
+
+| condition | HarmBench-ASR | 95% CI | vs undefended (McNemar) | degeneration |
+|---|---|---|---|---|
+| undefended | **30%** (6/20) | [15,52] | — | 0 |
+| refusal_only | 15% (3/20) | [5,36] | p=0.250 | 0 |
+| compliance_only | 25% (5/20) | [11,47] | p=1.000 | 1 |
+| **bipolar** | **10%** (2/20) | [3,30] | p=0.125 | 0 |
+| random_control | 30% (6/20) | [15,52] | p=1.000 | 0 |
+
+**Read vs pre-registration (EXPERIMENTS_QUEUE E5): partially met — promising trend, underpowered.**
+- The distinct attacker raised undefended ASR 20%→**30%** (up, but not ≫ — Qwen2.5-7B is robust; only
+  6/20 jailbroken).
+- **Direction right and coherent:** bipolar 30%→10%, refusal_only 30%→15%, both < undefended; and
+  **`random_control` = undefended exactly (30%)** → the effect is the *fitted circuit direction*, not
+  generic perturbation. **deg=0** for the steering conditions → additive steering induces *real
+  refusals*, not the degeneration that plagued the dense multiplicative/over-forced runs. This is the
+  first sign the bipolar defense coherently reduces propagation ASR.
+- **But not significant at n=20** (bipolar p=0.125, refusal_only p=0.250 — too few discordant pairs).
+- kw↔HarmBench agreement 35% (keyword over-counts; HarmBench essential).
+
+**Next (pre-registered "need more power" branch):** rerun at **n≥40** (the effect size 30%→10% + the
+clean random-control separation suggest significance is reachable) and/or a stronger attacker to lift
+base ASR. Run `multiagent_propagation/20260904T135131Z-a57f1763fe` (sandbox; numbers here + INDEX).
+
+---
+
 ## 2026-09-04 — M1: refusal is framing-conditional (POSITIVE mechanism result, Qwen2.5-7B)
 
 `bsc.experiments.peer_vs_request`, n=30 goals, identical harmful span presented as a **request** vs a
