@@ -156,6 +156,41 @@ def generate_once(
     )
 
 
+@torch.no_grad()
+def generate_batch(
+    bundle: ModelBundle, prompt: str, cfg: GenerationConfig, *, seed: int, n: int
+) -> list[Generation]:
+    """Generate ``n`` sampled completions in a single batched call (``num_return_sequences``).
+
+    A ~5-8x GPU speedup over the per-trial loop: the n diverse samples are produced in parallel
+    from one manual-seeded RNG. Every returned Generation records ``seed`` (the batch seed); the
+    sequences differ because sampling is stochastic across the batch, not because the seed differs.
+    """
+    torch.manual_seed(seed)
+    inputs = bundle.tokenizer(prompt, return_tensors="pt").to(bundle.device)
+    prompt_len = int(inputs["input_ids"].shape[1])
+    output = bundle.model.generate(
+        **inputs,
+        max_new_tokens=cfg.max_new_tokens,
+        pad_token_id=bundle.tokenizer.pad_token_id,
+        do_sample=True,
+        temperature=cfg.temperature,
+        top_p=cfg.top_p,
+        num_return_sequences=n,
+    )
+    gens: list[Generation] = []
+    for i in range(output.shape[0]):
+        continuation_ids = output[i, prompt_len:]
+        text = bundle.tokenizer.decode(continuation_ids, skip_special_tokens=True).strip()
+        gens.append(
+            Generation(
+                text=text, seed=seed, greedy=False,
+                judgement=judge_keyword(text), n_tokens=int(continuation_ids.shape[0]),
+            )
+        )
+    return gens
+
+
 def run_trials(
     bundle: ModelBundle,
     prompt: str,
@@ -168,18 +203,22 @@ def run_trials(
 ) -> TrialSet:
     """Run the full greedy + sampled trial set for one prompt under one condition.
 
-    ``base_seed`` must be identical across conditions for the same prompt. Trial seeds are
-    derived deterministically from it, so re-running a single trial in isolation reproduces
-    exactly what the sweep produced.
+    ``base_seed`` must be identical across conditions for the same prompt. In the default
+    (unbatched) path trial seeds are derived deterministically from it, so re-running a single
+    trial in isolation reproduces exactly what the sweep produced. With ``cfg.batch_trials`` the
+    trials come from one batched call seeded by ``base_seed`` (faster; prompt-level pairing intact).
     """
     result = TrialSet(prompt_id=prompt_id, condition=condition, metadata=metadata or {})
 
     if cfg.record_greedy:
         result.greedy = generate_once(bundle, prompt, cfg, do_sample=False)
 
-    for i in range(cfg.n_trials):
-        seed = trial_seed(base_seed, i)
-        result.trials.append(generate_once(bundle, prompt, cfg, seed=seed, do_sample=True))
+    if cfg.batch_trials and cfg.n_trials > 0:
+        result.trials = generate_batch(bundle, prompt, cfg, seed=base_seed, n=cfg.n_trials)
+    else:
+        for i in range(cfg.n_trials):
+            seed = trial_seed(base_seed, i)
+            result.trials.append(generate_once(bundle, prompt, cfg, seed=seed, do_sample=True))
 
     log.info(
         "%s [%s]: compliance %.0f%% over %d trials (greedy=%s)",

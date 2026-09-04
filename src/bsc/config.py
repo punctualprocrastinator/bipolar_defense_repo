@@ -48,6 +48,11 @@ class GenerationConfig:
     # (CLAUDE.md §2.1). The greedy run is recorded alongside but reported separately.
     n_trials: int = 8
     record_greedy: bool = True
+    # Generate all n_trials in ONE batched generate() call (num_return_sequences) instead of a
+    # Python loop — a ~5-8x speedup on GPU. Trades per-trial derived seeds for a single batch seed;
+    # prompt-level pairing (any_success, McNemar) is unaffected because that pairs on the prompt,
+    # not the trial index. Default off so historical per-trial-seeded runs stay bit-reproducible.
+    batch_trials: bool = False
 
 
 @dataclass
