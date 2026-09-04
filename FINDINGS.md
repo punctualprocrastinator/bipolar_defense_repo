@@ -9,6 +9,42 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-04 — M1: refusal is framing-conditional (POSITIVE mechanism result, Qwen2.5-7B)
+
+`bsc.experiments.peer_vs_request`, n=30 goals, identical harmful span presented as a **request** vs a
+**peer's task-to-continue** (same system prompt; only the one-sentence frame differs). HarmBench for
+behavior; `bsc.probes.refusal_readout` for disposition.
+
+| framing | HarmBench ASR | 95% CI | mean refusal-logit-diff | refusal-head mass | compliance-head mass |
+|---|---|---|---|---|---|
+| request | 0% | [0, 11] | **+68.1** | +5.80 | +5.07 |
+| peer | 7% | [2, 21] | **+47.3** | +5.76 | +4.86 |
+
+**Headline: the refusal *disposition* is framing-conditional — request is more refusal-disposed than
+peer on 28/30 goals** (sign test p ≈ 1e-6), for identical content. This supports the thesis at the
+mechanism level: reframing harmful content as a peer contribution erodes the refusal disposition.
+
+**Behavior lags disposition:** peer ASR (7%) > request (0%) in the predicted direction, but only 2/30
+goals flip (McNemar p=0.50) — Qwen2.5-7B mostly still refuses both framings behaviorally. Clean
+interpretation: the disposition shifts strongly *before* behavior flips (a disposition→behavior gap),
+not a null.
+
+**Honest caveats / next fixes:**
+- **Length/structure confound** between the frames (peer frame is longer), flagged by Continuation
+  Framing (2608.08212). Need a **length-matched request control** before the 28/30 is airtight.
+- **refusal-logit-diff is a crude summed-opener metric** (large magnitude; sign is what's robust) —
+  validate it correlates with actual refusal (CLAUDE.md §2.3).
+- **Head-mass metric uninformative here** (5.80 vs 5.76 refusal; 5.07 vs 4.86 compliance) — the output
+  refusal-logit-diff carries the signal; refine head-mass (normalize / use the difference-of-means
+  projection, not raw dot).
+- **Behavioral arm underpowered** on robust 7B (ASR 0-7%); the disposition arm is where the signal is.
+- **Next:** length-matched control; the **Jacobian-lens layer×disposition figure** (where the
+  disposition diverges under peer framing); and weaker/more models to show disposition→behavior.
+
+Run on the sandbox (runs/ gitignored); numbers here + `runs/INDEX.md`.
+
+---
+
 ## 2026-09-04 — Multi-agent propagation, first HarmBench result (Qwen2.5-7B) — underpowered NULL, controls pass
 
 First end-to-end run of `bsc.experiments.multiagent_propagation` on a GPU (run
