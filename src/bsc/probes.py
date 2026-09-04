@@ -163,7 +163,8 @@ def refusal_readout(
         total = 0.0
         for h in heads:
             act = grabbed[h.layer][geom.head_slice(h.head)]
-            direction = head_directions[h].to(act.dtype)
+            # head_directions are fit on CPU; move to the activation's device AND dtype.
+            direction = head_directions[h].to(device=act.device, dtype=act.dtype)
             total += float(torch.dot(act, direction))
         return total / len(heads) if heads else 0.0
 
