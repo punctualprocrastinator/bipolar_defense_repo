@@ -9,6 +9,43 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-04 — Multi-agent propagation, first HarmBench result (Qwen2.5-7B) — underpowered NULL, controls pass
+
+First end-to-end run of `bsc.experiments.multiagent_propagation` on a GPU (run
+`20260904T081558Z-f86a98cf99`, n=20 goals × 8 batched trials, additive steering α=8, HarmBench judge).
+Attacker = receiver (Qwen2.5-7B self-attack; no distinct peer model).
+
+| condition | HarmBench-ASR | 95% CI | vs undefended (McNemar) | degeneration |
+|---|---|---|---|---|
+| undefended | 20% (4/20) | [8, 42] | — | 0 |
+| refusal_only | 10% | [3, 30] | Δ=−0.10, p=0.50 | 2 |
+| compliance_only | 20% | [8, 42] | p=1.0 | 0 |
+| bipolar | 15% | [5, 36] | p=1.0 | 1 |
+| random_control | 20% | [8, 42] | p=1.0 | 0 |
+
+**Underpowered null — no condition significant.** Root cause upstream: the *self-attacker* is weak and
+Qwen2.5-7B resists, so undefended ASR is only 20% (4/20) and n=20 gives CIs too wide to separate anything.
+NOT evidence for/against the defense.
+
+**Controls pass (the value of this run):** (1) `random_control` = undefended (20%) — matched-norm random
+steering has no effect, so any real steering effect would not be generic perturbation; (2) the bipolar
+generations are **coherent** (deg=1; sample: *"…correct the word 'harassment'… continue with the section
+on harassment, providing examples…"*) — additive steering at α=8 does not break the model, validating the
+sign-correct additive path over the multiplicative one that inverts/degenerates; (3) **keyword↔HarmBench
+agreement = 14%** over 800 trials — the keyword judge massively over-counts non-harmful "compliance",
+confirming HarmBench as the instrument of record.
+
+**Also validated:** the whole new harness end-to-end (transcript build, `fit_head_directions`, all five
+conditions incl. random control, HarmBench rejudge, McNemar/Wilson, manifest) + the L1 1.5B smoke; and
+**batched trials** (`generation.batch_trials`) cut the run from ~75 min (un-batched projection) to 21 min.
+
+**Next (to get a non-null signal):** distinct/stronger attacker (raise undefended ASR), n≥40, steer
+`positions=all` (steer B while it *reads* the peer message), and the M1 mechanism probe (needs no high
+ASR — the framing contrast via the Jacobian-lens refusal disposition is the real signal). Run artifact on
+the sandbox only (runs/ gitignored); numbers preserved here + in `runs/INDEX.md`.
+
+---
+
 ## 2026-08-05 — Circuit Breakers (GraySwanAI RR checkpoint) baseline — BLOCKED on judge quality
 
 Obtained the actual Circuit Breakers checkpoints (`GraySwanAI/Llama-3-8B-Instruct-RR`,
