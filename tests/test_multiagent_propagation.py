@@ -83,3 +83,15 @@ def test_additive_bipolar_steers_both_populations_additively():
 def test_additive_without_vectors_raises():
     with pytest.raises(ValueError):
         condition_edits("bipolar", REFUSAL, COMPLIANCE, _cfg("additive_steering"), None)
+
+
+def test_random_control_steers_all_heads_additively():
+    # The causal control: same head set as bipolar, steered with the (random) vectors passed in.
+    edits = condition_edits("random_control", REFUSAL, COMPLIANCE, _cfg("additive_steering"), _VECS)
+    assert set(edits) == set(REFUSAL) | set(COMPLIANCE)
+    assert all(e.vector is not None for e in edits.values())
+
+
+def test_random_control_requires_additive_mode():
+    with pytest.raises(ValueError):
+        condition_edits("random_control", REFUSAL, COMPLIANCE, _cfg("multiplicative"), _VECS)

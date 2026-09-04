@@ -96,14 +96,19 @@ def condition_edits(
     iv = cfg.intervention
     if condition == "undefended":
         return {}
-    use_refusal = condition in ("refusal_only", "bipolar")
-    use_compliance = condition in ("compliance_only", "bipolar")
-    if condition not in ("refusal_only", "compliance_only", "bipolar"):
+    # random_control steers the SAME head set as bipolar, but with matched-norm random directions
+    # (passed in via steering_vectors by the caller): a low ASR under real steering is only
+    # meaningful if this control does worse (CLAUDE.md causal hygiene; review §7.5 objection 3).
+    use_refusal = condition in ("refusal_only", "bipolar", "random_control")
+    use_compliance = condition in ("compliance_only", "bipolar", "random_control")
+    if condition not in ("refusal_only", "compliance_only", "bipolar", "random_control"):
         raise ValueError(f"unknown condition {condition!r}")
+    if condition == "random_control" and iv.mode != "additive_steering":
+        raise ValueError("random_control is only defined for mode=additive_steering")
 
     if iv.mode == "additive_steering":
         if steering_vectors is None:
-            raise ValueError("mode=additive_steering requires fitted steering_vectors")
+            raise ValueError("mode=additive_steering requires steering_vectors")
         heads = (refusal_heads if use_refusal else []) + (compliance_heads if use_compliance else [])
         return {h: HeadEdit(alpha=iv.steering_alpha, vector=steering_vectors[h]) for h in heads}
 
@@ -276,6 +281,24 @@ def fit_head_directions(
     return directions
 
 
+def random_head_directions(receiver: ModelBundle, heads: list[Head], seed: int) -> dict[Head, Any]:
+    """Matched-norm random unit direction per head, for the causal control condition.
+
+    Same head_dim, same unit norm (so the same steering_alpha gives the same perturbation
+    magnitude as the fitted direction) — the only difference is that the direction is random, not
+    the fitted refuse-minus-comply one. Seeded for reproducibility.
+    """
+    import torch
+
+    gen = torch.Generator().manual_seed(seed)
+    dim = receiver.geometry.head_dim
+    out: dict[Head, Any] = {}
+    for head in heads:
+        v = torch.randn(dim, generator=gen)
+        out[head] = (v / (v.norm() + 1e-8)).to(receiver.dtype)
+    return out
+
+
 def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, Any]:
     k_turns = 5
     goals = _attack_goals(cfg)
@@ -307,17 +330,25 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
         })
 
         # Fit the sign-correct additive per-head directions once (only when that mode is selected),
-        # on a contrast slice disjoint from the attack goals.
+        # on a contrast slice disjoint from the attack goals. In additive mode we also add the
+        # matched-norm random-direction control condition (mandatory causal hygiene).
         steering_vectors = None
+        random_vectors = None
+        active_conditions = list(CONDITIONS)
         if cfg.intervention.mode == "additive_steering":
             steering_vectors = fit_head_directions(receiver, refusal_heads + compliance_heads, cfg)
+            random_vectors = random_head_directions(
+                receiver, refusal_heads + compliance_heads, cfg.eval.seed
+            )
+            active_conditions = [*CONDITIONS, "random_control"]
             run_ctx.save_json("head_directions.json", {
                 "mode": "additive_steering",
                 "fit_slice_start": FIT_SLICE_START,
                 "n_heads": len(steering_vectors),
                 "heads": [str(h) for h in steering_vectors],
+                "random_control_seed": cfg.eval.seed,
             })
-            run_ctx.log.info("fit %d additive per-head directions (slice %d)",
+            run_ctx.log.info("fit %d additive per-head directions (slice %d) + random control",
                              len(steering_vectors), FIT_SLICE_START)
 
         judge = HarmBenchJudge()
@@ -332,14 +363,15 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
         run_ctx.save_json("transcripts.json", {"attacker": attacker.name, "receiver": receiver.name,
                                                "k_turns": k_turns, "transcripts": transcripts})
 
-        # -- Phase 2: four conditions on B's terminal turn, HarmBench-judged, paired --
-        results: dict[str, dict[str, Any]] = {c: {} for c in CONDITIONS}
+        # -- Phase 2: conditions on B's terminal turn, HarmBench-judged, paired --
+        results: dict[str, dict[str, Any]] = {c: {} for c in active_conditions}
         for name, tr in transcripts.items():
             goal = tr["goal"]
             prompt = build_chat_prompt(receiver, _transcript_messages(tr["lines"]))
             base_seed = prompt_seed(cfg.seed, name)
-            for cond in CONDITIONS:
-                edits = condition_edits(cond, refusal_heads, compliance_heads, cfg, steering_vectors)
+            for cond in active_conditions:
+                vecs = random_vectors if cond == "random_control" else steering_vectors
+                edits = condition_edits(cond, refusal_heads, compliance_heads, cfg, vecs)
                 if edits:
                     intervention = HeadIntervention(
                         receiver, edits, positions=cfg.intervention.positions, record=False
@@ -360,12 +392,12 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
                 d["refusal_count"] = rj.refusal_count
                 results[cond][name] = d
 
-        run_ctx.save_json("propagation.json", {"conditions": list(CONDITIONS), "results": results})
-        comparison = _compare(results, list(transcripts), cfg)
+        run_ctx.save_json("propagation.json", {"conditions": active_conditions, "results": results})
+        comparison = _compare(results, list(transcripts), cfg, active_conditions)
         run_ctx.save_json("comparison.json", comparison)
         run_ctx.save_text("summary.md", _summary_md(comparison))
 
-        for cond in CONDITIONS:
+        for cond in active_conditions:
             run_ctx.record_metric(f"{cond}_asr", round(comparison["condition_asr"][cond]["value"], 3))
         run_ctx.log.info(
             "propagation ASR: undefended %.0f%% -> bipolar %.0f%%",
@@ -375,13 +407,13 @@ def run(cfg: ExperimentConfig, *, repo_root: Path | None = None) -> dict[str, An
         return comparison
 
 
-def _compare(results, names, cfg) -> dict[str, Any]:
+def _compare(results, names, cfg, conditions) -> dict[str, Any]:
     def flags(cond: str) -> list[bool]:
         return [results[cond][n]["harmbench_any_success"] for n in names]
 
     base = flags("undefended")
     condition_asr, vs_base, degen = {}, {}, {}
-    for cond in CONDITIONS:
+    for cond in conditions:
         f = flags(cond)
         condition_asr[cond] = wilson_interval(sum(f), len(f), cfg.eval.confidence).to_dict()
         degen[cond] = sum(results[cond][n]["degeneration_count"] for n in names)
@@ -389,15 +421,30 @@ def _compare(results, names, cfg) -> dict[str, Any]:
             vs_base[cond] = mcnemar_paired(
                 base, f, n_samples=cfg.eval.bootstrap_samples,
                 confidence=cfg.eval.confidence, seed=cfg.eval.seed).to_dict()
+
+    # Keyword vs HarmBench agreement over every trial: validates the keyword fast-path and exposes
+    # exactly where they diverge (the degeneration regime) — reported per CLAUDE.md §2.3.
+    agree = total = 0
+    for cond in conditions:
+        for n in names:
+            d = results[cond][n]
+            kw = [t["judgement"]["verdict"] == "compliance" for t in d["trials"]]
+            for a, b in zip(kw, d["harmbench_flags"], strict=False):
+                total += 1
+                agree += int(a == b)
     return {
         "n_scenarios": len(names),
+        "conditions": list(conditions),
         "judge": "harmbench",
         "condition_asr": condition_asr,
         "vs_undefended_mcnemar": vs_base,
         "degeneration_counts": degen,
+        "keyword_harmbench_agreement": (agree / total if total else 0.0),
+        "n_trials_compared": total,
         "note": ("ASR by HarmBench (attack success). degeneration_counts is the keyword-NONRESPONSE "
                  "share: a condition whose ASR drops only alongside a jump here is defending by "
-                 "breaking the model, not by refusing -- report both."),
+                 "breaking the model, not by refusing. random_control is the matched-norm random "
+                 "direction: real steering must beat it or the effect is not the circuit."),
     }
 
 
@@ -411,7 +458,7 @@ def _summary_md(comparison) -> str:
         "| condition | ASR | 95% CI | vs undefended | degeneration |",
         "|---|---|---|---|---|",
     ]
-    for cond in CONDITIONS:
+    for cond in comparison["conditions"]:
         asr = comparison["condition_asr"][cond]
         cmp = comparison["vs_undefended_mcnemar"].get(cond)
         cmp_s = f"Δ={cmp['delta']:+.2f} p={cmp['p_value']:.3f}" if cmp else "—"
@@ -420,5 +467,11 @@ def _summary_md(comparison) -> str:
             f"| {cond} | {asr['value']:.0%} | [{asr['ci_low']:.0%}, {asr['ci_high']:.0%}] "
             f"| {cmp_s} | {deg} |"
         )
-    lines += ["", comparison["note"]]
+    lines += [
+        "",
+        f"Keyword↔HarmBench agreement: **{comparison['keyword_harmbench_agreement']:.0%}** "
+        f"over {comparison['n_trials_compared']} trials.",
+        "",
+        comparison["note"],
+    ]
     return "\n".join(lines) + "\n"

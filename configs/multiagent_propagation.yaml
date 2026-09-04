@@ -23,8 +23,12 @@ generation:
   temperature: 0.7
   top_p: 0.9
 intervention:
+  # In additive_steering mode the run auto-adds a 5th 'random_control' condition (matched-norm
+  # random direction on the same heads) — real steering must beat it or the effect is not the
+  # circuit. positions: last steers B while it GENERATES; positions: all also steers while B READS
+  # the peer's harmful message (the mechanism thesis is about processing peer content) — sweep both.
   mode: additive_steering      # additive_steering (sign-correct, recommended) | multiplicative (cautionary baseline)
-  positions: last
+  positions: last              # last | all  (see note above)
   steering_alpha: 8.0          # additive step size; sweep this
   refusal_multiplier: 3.0      # used only by multiplicative mode
   ablate_compliance: true
