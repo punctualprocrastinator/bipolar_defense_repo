@@ -47,8 +47,9 @@ not post-hoc.
 
 **Attacker for E4/E5/E6 = a deliberately less-aligned instruct model** (option b). Writes genuinely
 harmful escalations → raises undefended ASR where defenses have room; the most realistic "compromised
-peer". TODO: pick the exact checkpoint (an abliterated/uncensored 7-8B) and confirm it loads under
-transformers 5.14 before the full run; smoke it (L1) first.
+peer". **PICKED + SMOKED: `huihui-ai/Qwen2.5-7B-Instruct-abliterated-v2`** — loads on tf 5.14, Qwen
+family (matches receiver chat template), and on the smoke it complied with a firearm-manufacture
+escalation (refused=False). Used as `attacker_model` in E5.
 
 ## E1 — DONE (2026-09-04): metric validated
 `refusal_logit_diff` self-consistency **r=+0.948** vs the model's own greedy first token (refusal-opener
