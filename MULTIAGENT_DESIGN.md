@@ -140,13 +140,22 @@ class RefusalReadout:
     refusal_logit_diff: float          # Σlogit(refusal openers) − Σlogit(comply openers) @ pos 0
     refusal_head_mass: float           # projection mass on refusal-head refuse−comply directions
     compliance_head_mass: float        # ... on compliance-head directions
+    layer_refusal_diff: list[float]    # LOGIT-LENS: refusal_logit_diff decoded per layer (optional)
     first_token: str
 
-def refusal_readout(bundle, prompt, head_directions, refusal_heads, compliance_heads) -> RefusalReadout
+def refusal_readout(bundle, prompt, head_directions, refusal_heads, compliance_heads,
+                    *, lens=None) -> RefusalReadout
     # one forward pass (no generation); reuses the o_proj-input capture from fit_head_directions
     # and the model's next-token logits. Pure measurement — no hooks that edit.
 ```
 This is the M1/M2 instrument and is independent of generation, so it is cheap and deterministic.
+
+**Logit-lens layer readout (M1 upgrade, optional).** `lens` decodes each layer's residual through the
+unembedding (logit lens — no training, works on Qwen2.5-7B / Llama-3-8B; cf. LogitLens4LLMs) to a
+per-layer `refusal_logit_diff`. The killer figure: the refusal signal is **present at mid-layers but
+suppressed at the output under peer framing** (corroborating Safety Relay 2608.30585 / JailbreakLens
+2411.11114). Treated as a *measurement instrument*: validate its per-layer diff against actual refusal
+behavior before quoting (CLAUDE.md §2.3). Off the defense critical path — an M1 mechanism enhancement.
 
 ### 3.3 New experiments (each `run(cfg) -> dict`, manifest via `RunContext`)
 - `bsc/experiments/peer_vs_request.py` — M1 (+ optional M2 if `intervention.enabled`).
@@ -236,6 +245,7 @@ cite. Topology-guided "G-Safeguard"-type methods were not independently verified
 | Attention Head Specialization (ACH/SAH) | 2606.28153 | Attack-suppressed vs robust safety heads | Activation (single-model) | Corroborates safety heads; not agentic/framing |
 | Safety Relay in Roleplay | 2608.30585 | Causal "safety-relay attenuation": harm still detected, refusal expression weakens; removing the change *restores refusal* | Activation (single-model) | **Sharpest framing prior**, but single-model roleplay, *no defense*, no propagation |
 | Continuation Framing (Harmful Content Is Not Enough) | 2608.08212 | Identical harmful text as demo/tool-output (continue) vs document/request → +30–32pp; "content necessary but insufficient" | Behavioral | **Empirically scoops the framing claim** — but reports a **negative** steering result, calls it a behavioral boundary, *failed to find the mechanism*. We claim it |
+| **JailbreakLens** (He, Wang, Chu et al., ZJU) | **2411.11114** | Representation+circuit analysis of jailbreaks on 5 LLMs, 7 strategies: jailbreaks **amplify affirmative components / suppress refusal components** | Activation (single-model, single-prompt) | **Partial scoop of the single-model mechanism** (found post-review) — cite and build on; we add the *peer-contribution framing*, *propagation*, and *network steering* they do not have |
 | Arditi et al., Refusal = single direction | 2406.11717 | Difference-in-means refusal direction | Activation (single-model) | We use a framing-conditioned multi-head circuit in a *network*; this is our steering substrate |
 | Circuit Breakers / RR | 2406.04313 | LoRA reroute harmful reps | Training | We are inference-time, targeted, multi-agent |
 | Agent-SafetyBench | 2412.14470 | 349 envs, 2000 cases; MAS splits score *higher* risk | Benchmark | Adopt as eval substrate; extend with propagation metrics |
@@ -254,8 +264,9 @@ refusal-restoring, propagation-intercepting** one."
   causal, single-model roleplay) + Continuation Framing (2608.08212, behavioral, *failed to find the
   mechanism*). A clean **circuit-level** account in the peer-contribution regime is still open; 2608.08212's
   negative steering result is an opening, not a wall.
-- **(b) continuation vs refusal heads exist and are causal** — *scooped* (2603.08234, 2606.28153). **Cite
-  and build on; do not claim discovery.**
+- **(b) continuation vs refusal heads exist and are causal** — *scooped* (2603.08234, 2606.28153; and
+  **JailbreakLens 2411.11114** — jailbreaks amplify affirmative / suppress refusal components, single-model
+  single-prompt). **Cite and build on; do not claim discovery.**
 - **(c) propagation is mediated by that circuit; steering one node intercepts network propagation** —
   **GENUINELY OPEN.** No paper connects agent-to-agent propagation to any internal circuit. **This is the
   headline.**
