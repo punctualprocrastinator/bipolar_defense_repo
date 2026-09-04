@@ -150,12 +150,25 @@ def refusal_readout(bundle, prompt, head_directions, refusal_heads, compliance_h
 ```
 This is the M1/M2 instrument and is independent of generation, so it is cheap and deterministic.
 
-**Logit-lens layer readout (M1 upgrade, optional).** `lens` decodes each layer's residual through the
-unembedding (logit lens — no training, works on Qwen2.5-7B / Llama-3-8B; cf. LogitLens4LLMs) to a
-per-layer `refusal_logit_diff`. The killer figure: the refusal signal is **present at mid-layers but
-suppressed at the output under peer framing** (corroborating Safety Relay 2608.30585 / JailbreakLens
-2411.11114). Treated as a *measurement instrument*: validate its per-layer diff against actual refusal
-behavior before quoting (CLAUDE.md §2.3). Off the defense critical path — an M1 mechanism enhancement.
+**Jacobian-Lens layer×position readout (primary M1 instrument).** `lens` is Anthropic's **Jacobian
+Lens** (github.com/anthropics/jacobian-lens; pretrained lenses at hf.co/neuronpedia/jacobian-lens;
+Apache-2.0/MIT; Qwen-native). It decodes an activation via the corpus-averaged input→output Jacobian —
+`lens_l(h) = unembed(J_l·h)`, `J_l = E[∂h_final/∂h_l]` — i.e. what the activation is *disposed to make
+the model say*, propagated through the model's actual (linearized) computation. More faithful mid-stack
+than logit lens (which is a zero-cost sanity cross-check only). **Two uses:**
+
+1. **M1 mechanism figure.** Per layer × position, is B **disposed to refuse** under *request* framing and
+   is that disposition **suppressed/absent** under *peer* framing, for identical content — including at
+   the positions where B *reads* the peer's harmful message? (Corroborates Safety Relay 2608.30585 /
+   JailbreakLens 2411.11114, with a stronger instrument.)
+2. **Causal hygiene (review §7.5 objection 3).** After steering B's compliance heads, does the Jacobian
+   readout show the **refusal disposition restored at the output** — not just a norm shift? Ties the
+   defense back to the mechanism.
+
+Instrument discipline: validate the readout against actual refusal behavior (CLAUDE.md §2.3); the
+Jacobian is web-text-averaged, so confirm it captures refusal-specific flow (or fit on a refusal-
+inclusive mix — ~100–1000 prompts, one-time). Check neuronpedia for a Qwen2.5-7B lens; else fit our own.
+`jlens` is a new dependency, isolated to `bsc/probes.py`. Off the defense (C4) critical path.
 
 ### 3.3 New experiments (each `run(cfg) -> dict`, manifest via `RunContext`)
 - `bsc/experiments/peer_vs_request.py` — M1 (+ optional M2 if `intervention.enabled`).
