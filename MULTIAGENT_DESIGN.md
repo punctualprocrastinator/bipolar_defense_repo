@@ -218,11 +218,16 @@ for the degeneration/NONRESPONSE split. A generative-LLM judge is NOT used (nois
 - Topologies (C1): line first, then star and dense (TMCHT's set) — report per-topology.
 
 ## 5. Build order (compute-free first)
-1. `bsc/probes.py` + `bsc/agents.py` (+ CPU unit tests: identity no-op defense, chain wiring, probe
-   readout shape, framing string-identity assertion). **No GPU.**
-2. `peer_vs_request.py` (M1) — smallest, highest-novelty. Dry-run on CPU.
-3. `propagation_chain.py` (C1).
-4. `multiagent_baselines.py` (B1/B2).
+1. ✅ **DONE** — `bsc/agents.py` (Agent/DefenseSpec/ChainHop/ChainRun, `build_agent_messages`,
+   `agent_reply`, `run_chain` with injectable reply) + `bsc/probes.py` (`refusal_diff_from_logits`,
+   `opener_token_ids`, `RefusalReadout`, `refusal_readout`, logit-lens fallback, `load_jacobian_lens`).
+   CPU unit tests (message assembly, no-op defense, chain propagation, per-agent seeds, pure
+   refusal-diff metric) — 119 tests pass. `jlens` is a **lazy optional dependency** (only imported in
+   `load_jacobian_lens`); install from github.com/anthropics/jacobian-lens when the Jacobian readout is
+   used. **No GPU.**
+2. `peer_vs_request.py` (M1) — smallest, highest-novelty. Dry-run on CPU. (next)
+3. `propagation_chain.py` (C1) — uses `run_chain`; cascade + placement + herd-immunity.
+4. `multiagent_baselines.py` (B1/B2) — AcMAS-style + prompt + CB checkpoint.
 5. One GPU session: run M1 → M2 → C1 → B1 on Qwen2.5-7B, commit artifacts (never leave runs on the
    sandbox again).
 
