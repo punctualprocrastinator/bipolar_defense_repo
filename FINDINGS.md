@@ -43,9 +43,12 @@ clearly lower — **the effect is the peer FRAMING, not preamble length.** Behav
   refusal.~~ **DONE (E1, offline):** self-consistency r=**+0.948** vs the model's own greedy first
   token (refusal-opener mean +73.5 vs comply-opener −141.9); behavioral direction correct (jailbroken
   +27 vs refused +61; weak r=−0.14 only from 5/90 successes on the robust 7B). Metric validated.
-- **Layer figure (logit lens):** the request-vs-peer refusal-disposition gap is a **late-layer**
-  effect — curves identical at L0, diverge only in the last ~5 layers, peak gap +15 at **L25**
-  (of 29). Consistent with Safety Relay's "harm detected, refusal expression attenuated late."
+- **Layer figure — late-layer suppression, confirmed by two lenses.** The request-vs-peer
+  refusal-disposition gap is a **late-layer** effect: curves identical early, diverge only in the last
+  layers. *Logit lens* (n=30): peak gap +15 at L25/29. *Jacobian lens* (E3; Anthropic's pretrained
+  Qwen2.5-7B lens, `neuronpedia/jacobian-lens`, no fitting needed): gap ≈0 through L9, builds from
+  ~L12, **peak +11.9 at L26/27**. The principled instrument reproduces the finding. Consistent with
+  Safety Relay's "harm detected, refusal expression attenuated late." Figures sent to user.
 - **Head-mass metric uninformative here** (5.80 vs 5.76 refusal; 5.07 vs 4.86 compliance) — the output
   refusal-logit-diff carries the signal; refine head-mass (normalize / use the difference-of-means
   projection, not raw dot).
