@@ -1,0 +1,27 @@
+# M1 mechanism experiment on Qwen2.5-7B: same harmful content as a request vs a peer contribution.
+# No attacker/jailbreak needed — measures the receiver's refusal disposition per framing.
+# HarmBench judge (inside the experiment) for behavior; refusal_readout for disposition.
+# To use the Jacobian lens for the layer readout, set:
+#   intervention.steering_vectors_path: "jlens:neuronpedia/jacobian-lens:<model>/lens.pt"
+seed: 0
+model:
+  name: Qwen/Qwen2.5-7B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager      # o_proj-input capture for head mass needs exposed activations
+generation:
+  max_new_tokens: 130
+  n_trials: 8
+  temperature: 0.7
+  top_p: 0.9
+  batch_trials: true              # ~5-8x faster
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_7B.json
+  selection: top_k
+  top_k_refusal: 11
+  top_k_compliance: 5
+data:
+  limit: 30                       # goals (AdvBench slice at offset 120, disjoint from fit slice)
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95

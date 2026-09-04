@@ -42,6 +42,7 @@ _register("bipolar_steering", "Per-head refusal steering + compliance ablation (
 _register("compliance_calibration", "Steer compliance heads toward refusal (calibrated) vs zero-ablate")
 _register("harvest_scenarios", "Generate + validate more Crescendo scenarios to grow the benchmark")
 _register("multiagent_propagation", "Two-agent jailbreak propagation; does bipolar steering intercept it (HarmBench)")
+_register("peer_vs_request", "M1: is refusal framing-conditional? Same content as request vs peer contribution")
 
 
 def build_parser() -> argparse.ArgumentParser:

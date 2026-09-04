@@ -17,4 +17,5 @@ __all__ = [
     "compliance_calibration",
     "harvest_scenarios",
     "multiagent_propagation",
+    "peer_vs_request",
 ]
