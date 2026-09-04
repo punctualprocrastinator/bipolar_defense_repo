@@ -29,9 +29,16 @@ goals flip (McNemar p=0.50) — Qwen2.5-7B mostly still refuses both framings be
 interpretation: the disposition shifts strongly *before* behavior flips (a disposition→behavior gap),
 not a null.
 
-**Honest caveats / next fixes:**
-- **Length/structure confound** between the frames (peer frame is longer), flagged by Continuation
-  Framing (2608.08212). Need a **length-matched request control** before the 28/30 is airtight.
+**UPDATE (same day) — length confound CONTROLLED, effect confirmed.** Re-ran with a third framing,
+`request_long`: a length-matched (17-word) user-request preamble with the same surface structure as the
+peer frame. Result (n=30): request_long refusal-logit-diff **+62.0** ≈ request **+68.1** ≫ peer **+47.3**,
+and **request_long is more refusal-disposed than peer on 27/30 goals** (mean gap +14.7, sign test
+p ≈ 1e-5). So the matched-length request is just as refusal-disposed as the short one, and peer is still
+clearly lower — **the effect is the peer FRAMING, not preamble length.** Behavior still near-floor
+(request 3% / request_long 7% / peer 7%, no separation) — disposition→behavior gap holds. Run
+`peer_vs_request/…` (a0eb645).
+
+**Remaining caveats / next fixes:**
 - **refusal-logit-diff is a crude summed-opener metric** (large magnitude; sign is what's robust) —
   validate it correlates with actual refusal (CLAUDE.md §2.3).
 - **Head-mass metric uninformative here** (5.80 vs 5.76 refusal; 5.07 vs 4.86 compliance) — the output
