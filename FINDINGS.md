@@ -9,6 +9,38 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — ⚠ CORRECTIONS to earlier claims, forced by the intent lit review
+
+Three things I stated too strongly earlier. Recorded here rather than quietly edited (CLAUDE.md §7).
+
+1. **The r=0.948 metric validation is narrower than I said.** It is agreement between
+   `refusal_logit_diff` and the model's own **greedy first token** — i.e. next-token *disposition*.
+   **2402.14499** (ACL'24 Findings) shows first-token probabilities and the actually-generated text
+   diverge **>60%** of the time, *worst in safety-tuned models*. So r=0.948 does **not** establish
+   agreement with behavior. Correct statement: the metric is a validated readout of next-token refusal
+   disposition; behavioral claims still require sampled generations + judge (as our defense runs do).
+2. **Our length-matched control is necessary but may not be sufficient.** **2605.01048** shows targeted
+   counterfactual edits can be statistically indistinguishable from plain paraphrasing (14.9% vs 14.1%
+   in their case). Our framing effect needs a **meaning-preserving paraphrase-only null arm** before the
+   27/30–29/30 results are airtight; add a **format-decorrelation** arm too (**2603.19426**: probes call
+   format-matched prompts "eval" 94.5% of the time — they track format, not context).
+3. **The matched-norm random-direction control is necessary but not sufficient.** **SteerCheck
+   2608.24335**: 25.3% of sign-randomized same-construction controls still keep cos>0.5 with the true
+   direction. Our null (random ≈ undefended) should be supplemented with the cosine distribution, a
+   mean-ablation, and a polarity-reversal control.
+
+**Biggest outstanding validity threat:** **2608.09624** — under *wrappers*, internal safety scores
+**anti-ranked** jailbreak success (AUROC **0.220**; successful attacks scored *safer*) while harm rate
+rose 5×. **Our peer framing is a wrapper.** Before any disposition-based claim, report
+disposition-vs-judged-outcome AUROC **within each framing arm separately** (pooling hides exactly this
+failure), at a fixed content-independent measurement coordinate.
+
+**Prior art to cite:** **MULI (2405.18822, NeurIPS'24)** — sparse logistic regression on
+first-response-token logits beats SOTA toxicity detectors. Our refusal-disposition metric is a close
+cousin; cite it as adoption, not reinvention.
+
+---
+
 ## 2026-09-05 — CROSS-MODEL FRAMING SURVEY (8 models): framing-sensitivity is a MODEL PROPERTY
 
 Method insight that made this cheap: the M1 metric `refusal_logit_diff` uses the model's **own output
