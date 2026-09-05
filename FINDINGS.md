@@ -9,6 +9,49 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — CROSS-MODEL FRAMING SURVEY (8 models): framing-sensitivity is a MODEL PROPERTY
+
+Method insight that made this cheap: the M1 metric `refusal_logit_diff` uses the model's **own output
+logits** — no circuit map, no HarmBench, no generation. One forward pass per prompt ⇒ ~2 min/model.
+Probe `/marimo/framing_survey{,2}.py`, 30 AdvBench goals (slice 120:150), identical 3-framing design
+(`request` / length-matched `request_long` / `peer`), sign test on request_long > peer.
+
+**Instrument validated:** the cheap probe reproduced the full-pipeline M1 numbers *exactly* for all three
+previously-run models (Qwen2.5-1.5B 29/30 +23.0; Qwen2.5-7B 27/30 +14.7; Llama-3-8B 14/30 +0.8).
+
+| model | request_long > peer | mean gap | group |
+|---|---|---|---|
+| Qwen2.5-1.5B-Instruct | **29/30** | +23.0 | framing-conditional |
+| Mistral-7B-Instruct-v0.3 | **28/30** | +6.6 | framing-conditional |
+| Qwen2.5-7B-Instruct | **27/30** | +14.7 | framing-conditional |
+| Qwen3-8B | 17/30 | +2.1 | insensitive (chance) |
+| Phi-3.5-mini-instruct | 16/30 | +4.2 | insensitive (chance) |
+| Meta-Llama-3-8B-Instruct | 14/30 | +0.8 | insensitive (chance) |
+| gemma-2-9b-it | 11/30 | −0.2 | insensitive |
+| **OLMo-2-1124-7B-Instruct** | **0/30** | **−12.0** | **REVERSED** |
+
+**This reframes the paper.** The claim is no longer "refusal is framing-conditional" (which was a
+Qwen artifact) but a **cross-model characterization**: *models differ systematically in whether refusal
+is bound to request framing or to content, and framing-sensitivity is a measurable model property.*
+Three groups: framing-conditional (Qwen2.5 both scales, Mistral-7B), insensitive (Qwen3, Phi-3.5,
+Llama-3, Gemma-2), and reversed (OLMo-2 — peer framing makes it *more* refusal-disposed).
+
+**Notable:** Qwen2.5 (27/30) → **Qwen3 (17/30)** — the *newer generation of the same family lost the
+vulnerability*, suggesting newer safety training closed it. A within-family temporal result.
+
+**Caveats / to verify:**
+- **OLMo-2's 0/30 perfect reversal is suspiciously clean** — plausible (trained to distrust
+  "teammate asks you to continue" framing) but could be a constant offset in the opener-logit metric
+  for that tokenizer. **Verify before quoting**: inspect actual first tokens / refusal behavior under
+  both framings on OLMo.
+- The survey measures *disposition* only (no behavioral ASR, no generation). Behavior was near-floor
+  wherever we measured it.
+- Everything else in this project (C4, the 70→16% defense) is still **Qwen-only** — the framing groups
+  above now give a principled way to pick a second model for the defense arm (e.g. Mistral-7B, which
+  shares the vulnerability).
+
+---
+
 ## 2026-09-05 — ⚠ M1 does NOT replicate on Llama-3-8B — the framing effect is MODEL-DEPENDENT
 
 Cross-**family** test (the generalization check the single-model objection demands). Discovered a fresh

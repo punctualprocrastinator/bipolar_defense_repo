@@ -23,3 +23,4 @@ Appended automatically by `bsc.runs.RunContext`. One line per run.
 | 2026-09-05 07:xx | dataset_defense (validated attacks) | completed(attacks) | `/marimo/dataset_defense.py` (probe) | crescendo 70%->16%, persona_fiction 90%->18% bipolar; random control 74%/84% (null); n=100/family; XSTest utility pending |
 | 2026-09-05 07:22 | discover_circuit (Llama-3-8B) | completed | `discover_circuit/20260905T072255Z-bd47c7c88f` | circuit map for cross-family M1 (32 heads x128, GQA 4:1) |
 | 2026-09-05 07:33 | peer_vs_request (M1 cross-FAMILY Llama-3-8B) | completed | `peer_vs_request/20260905T073344Z-da557c3c42` | NULL: request_long>peer 14/30 (chance), gap +0.8 -> framing effect ABSENT on Llama-3-8B |
+| 2026-09-05 07:5x | framing_survey (8 models, probe) | completed | `/marimo/framing_survey{,2}.py` | framing-conditional: Qwen2.5-1.5B 29/30, Mistral-7B 28/30, Qwen2.5-7B 27/30; insensitive: Qwen3 17, Phi3.5 16, Llama3 14, Gemma2 11; REVERSED: OLMo-2 0/30 (gap -12.0) |
