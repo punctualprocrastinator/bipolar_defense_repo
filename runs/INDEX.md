@@ -21,3 +21,5 @@ Appended automatically by `bsc.runs.RunContext`. One line per run.
 | 2026-09-05 06:50 | propagation_chain (C4) | completed | `propagation_chain/20260905T065045Z-220eb6013a` | cascade decays 75->28->19->6%; steer B alone halts it at B 28%->0% (p=0.002, random null); downstream floor-limited |
 | 2026-09-05 07:16 | peer_vs_request (M1 cross-scale 1.5B) | completed | `peer_vs_request/20260905T071609Z-f1bb4c1c07` | framing effect replicates: request_long>peer 29/30 (p~6e-8), gap +23.0; head-mass separates at 1.5B too |
 | 2026-09-05 07:xx | dataset_defense (validated attacks) | completed(attacks) | `/marimo/dataset_defense.py` (probe) | crescendo 70%->16%, persona_fiction 90%->18% bipolar; random control 74%/84% (null); n=100/family; XSTest utility pending |
+| 2026-09-05 07:22 | discover_circuit (Llama-3-8B) | completed | `discover_circuit/20260905T072255Z-bd47c7c88f` | circuit map for cross-family M1 (32 heads x128, GQA 4:1) |
+| 2026-09-05 07:33 | peer_vs_request (M1 cross-FAMILY Llama-3-8B) | completed | `peer_vs_request/20260905T073344Z-da557c3c42` | NULL: request_long>peer 14/30 (chance), gap +0.8 -> framing effect ABSENT on Llama-3-8B |

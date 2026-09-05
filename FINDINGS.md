@@ -9,6 +9,43 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — ⚠ M1 does NOT replicate on Llama-3-8B — the framing effect is MODEL-DEPENDENT
+
+Cross-**family** test (the generalization check the single-model objection demands). Discovered a fresh
+circuit for `NousResearch/Meta-Llama-3-8B-Instruct` (`discover_circuit`, 20 pairs, geometry verified
+32 heads x 128, GQA 4:1 — run `20260905T072255Z-bd47c7c88f`), then ran the identical 3-framing M1
+(run `20260905T073344Z-da557c3c42`, n=30).
+
+| framing | mean refusal-logit-diff | refusal-head mass | compliance-head mass | HarmBench ASR |
+|---|---|---|---|---|
+| request | +76.8 | +1.94 | +2.30 | 0% |
+| request_long (length-matched) | +79.7 | +1.87 | +2.29 | 0% |
+| peer | **+78.9** | +2.09 | +2.51 | 0% |
+
+**request_long > peer on only 14/30 goals — chance level** (mean gap +0.8); short-request vs peer is
+10/30 (gap −2.0, i.e. peer marginally *more* refusal-disposed). **The framing effect is absent.**
+
+**This is not a circuit-quality artifact:** `refusal_logit_diff` is computed from the model's own output
+logits and does **not** depend on the circuit map; it shows no framing gap. Llama-3-8B is uniformly
+refusal-disposed (~+79) whatever the frame, and refuses all framings behaviorally (ASR 0%).
+
+**Honest consequence — the mechanism claim must be narrowed:**
+
+| model | request_long vs peer | gap | verdict |
+|---|---|---|---|
+| Qwen2.5-1.5B | 29/30 (p~6e-8) | +23.0 | strong effect |
+| Qwen2.5-7B | 27/30 (p~1e-5) | +14.7 | strong effect |
+| **Llama-3-8B** | **14/30 (chance)** | **+0.8** | **NO effect** |
+
+So: **refusal is framing-conditional in the Qwen2.5 family (robust across scale) but content-conditional
+in Llama-3-8B.** Do NOT state "refusal is framing- not content-conditional" as a universal claim. The
+defensible version is a *cross-model characterization*: safety-tuned models differ in whether refusal is
+bound to request framing or to content, and that difference predicts multi-agent propagation
+vulnerability. **Note also that every other result in this project (M1, C4, the 70→16% defense) is on
+Qwen** — the whole arc is currently Qwen-centric, which is the paper's main generalization limitation.
+
+---
+
 ## 2026-09-05 — HEADLINE DEFENSE RESULT: bipolar steering on VALIDATED attacks (70→16%, 90→18%)
 
 Source: the user's `prompts.jsonl` — pre-generated attacks on **Qwen2.5-7B-Instruct** (our exact
