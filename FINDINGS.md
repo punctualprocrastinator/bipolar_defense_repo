@@ -9,6 +9,33 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — M1 REPLICATES ACROSS SCALE (Qwen2.5-1.5B) — mechanism is not a 7B artifact
+
+`peer_vs_request` on **Qwen2.5-1.5B** (its own circuit map), n=30, same length-matched 3-framing design.
+Run `20260905T071609Z-f1bb4c1c07`.
+
+| framing | mean refusal-logit-diff | refusal-head mass | compliance-head mass | HarmBench ASR |
+|---|---|---|---|---|
+| request | +54.0 | +2.50 | +4.69 | 7% |
+| request_long (length-matched) | +55.0 | +2.43 | +4.59 | 7% |
+| **peer** | **+32.0** | **+1.86** | **+3.43** | 7% |
+
+**request_long more refusal-disposed than peer on 29/30 goals** (gap +23.0, sign test p ≈ 6e-8) —
+*stronger* than the 7B result (27/30, p≈1e-5). Cross-scale summary of the framing effect:
+
+| model | request_long vs peer | mean gap | sign-test p |
+|---|---|---|---|
+| Qwen2.5-7B | 27/30 | +14.7 | ~1e-5 |
+| Qwen2.5-1.5B | **29/30** | **+23.0** | ~6e-8 |
+
+Also: at 1.5B the **head-mass metric separates too** (refusal 2.43→1.86, compliance 4.59→3.43 under peer
+framing), where it was flat at 7B — so the circuit-level readout corroborates the output-level one at
+this scale. Behavior stays near-floor at both scales (7% ASR, no separation) — the disposition→behavior
+gap is consistent. **This closes the single-model objection for the mechanism claim.** Next for
+generalization: cross-*family* (Llama-3-8B) — needs a `discover_circuit` run first for its circuit map.
+
+---
+
 ## 2026-09-05 — C4: propagation chain — node-level defense SIGNIFICANT; cascade decays
 
 `propagation_chain`, chain A(compromised abliterated peer) -> B -> C -> D of Qwen2.5-7B receivers,
