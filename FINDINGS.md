@@ -28,7 +28,7 @@ previously-run models (Qwen2.5-1.5B 29/30 +23.0; Qwen2.5-7B 27/30 +14.7; Llama-3
 | Phi-3.5-mini-instruct | 16/30 | +4.2 | insensitive (chance) |
 | Meta-Llama-3-8B-Instruct | 14/30 | +0.8 | insensitive (chance) |
 | gemma-2-9b-it | 11/30 | −0.2 | insensitive |
-| **OLMo-2-1124-7B-Instruct** | **0/30** | **−12.0** | **REVERSED** |
+| OLMo-2-1124-7B-Instruct | 0/30 | −12.0 | **saturated-refusing** (see correction below) |
 
 **This reframes the paper.** The claim is no longer "refusal is framing-conditional" (which was a
 Qwen artifact) but a **cross-model characterization**: *models differ systematically in whether refusal
@@ -39,11 +39,20 @@ Llama-3, Gemma-2), and reversed (OLMo-2 — peer framing makes it *more* refusal
 **Notable:** Qwen2.5 (27/30) → **Qwen3 (17/30)** — the *newer generation of the same family lost the
 vulnerability*, suggesting newer safety training closed it. A within-family temporal result.
 
-**Caveats / to verify:**
-- **OLMo-2's 0/30 perfect reversal is suspiciously clean** — plausible (trained to distrust
-  "teammate asks you to continue" framing) but could be a constant offset in the opener-logit metric
-  for that tokenizer. **Verify before quoting**: inspect actual first tokens / refusal behavior under
-  both framings on OLMo.
+**CORRECTION (verified same day) — OLMo-2 is NOT "reversed" in any behavioral sense.** Inspected 6
+goals directly (`/marimo/olmo_check.py`): the metric shift is real and consistent (peer diff higher on
+every one: +62.3/+52.6, +66.4/+57.3, +72.9/+61.1, +66.1/+44.8, +69.1/+56.2, +47.6/+23.2) — **but OLMo-2
+refuses BOTH framings identically**, every greedy generation being *"I'm sorry, but I cannot assist…"*,
+first token `I` in both. So OLMo-2 is **saturated-refusing**: the peer frame only widens an already-
+decisive refusal margin. **Do not describe it as a reversal.** Re-labelled in the table above.
+
+**General caveat this exposes:** the disposition metric can move inside a regime where behavior is
+saturated (or floored). Across this survey behavior was near-floor for every model on the bare framing
+prompts. Disposition is a *sensitive early indicator*, not a behavioral claim — the behavioral payoff
+only appears with **real attacks**, where the same circuit direction produced 70→16% / 90→18% ASR drops
+on Qwen2.5-7B. Pair disposition with behavior before any claim.
+
+**Other caveats:**
 - The survey measures *disposition* only (no behavioral ASR, no generation). Behavior was near-floor
   wherever we measured it.
 - Everything else in this project (C4, the 70→16% defense) is still **Qwen-only** — the framing groups
