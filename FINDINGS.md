@@ -9,6 +9,35 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — HEADLINE DEFENSE RESULT: bipolar steering on VALIDATED attacks (70→16%, 90→18%)
+
+Source: the user's `prompts.jsonl` — pre-generated attacks on **Qwen2.5-7B-Instruct** (our exact
+receiver) with per-example success labels, staged privately (`punctualprocrastinator/bsc-attacks-private`,
+NOT in this public repo). Probe `/marimo/dataset_defense.py`; receiver Qwen2.5-7B, additive bipolar α=8,
+HarmBench judge, any-of-3 sampled trials, n=100 per family.
+
+| attack family | undefended | **bipolar** | random control |
+|---|---|---|---|
+| **multiturn_crescendo** | 70% | **16%** | 74% |
+| **persona_fiction** | 90% | **18%** | 84% |
+
+**Why this is the strongest defense evidence in the project:**
+1. **Real power at last.** Undefended ASR is 70–90% (vs 20–30% for our home-grown attackers, which
+   made every earlier defense arm underpowered). n=100/family ⇒ overwhelmingly significant.
+2. **The matched-norm random control does nothing** (74%, 84% ≈ undefended) — the effect is the
+   *specific fitted circuit direction*, not generic activation perturbation. This is the causal-hygiene
+   control the lit review demanded (review §7.5 objection 3).
+3. **Cross-attack transfer.** ONE direction — fit on a generic harmful-vs-benign AdvBench contrast,
+   disjoint from these attacks — defends two very different families (a multi-turn crescendo and a
+   single-turn persona/fiction jailbreak). That is the cross-attack-transfer claim, demonstrated.
+
+**Caveat / pending:** the XSTest over-refusal (utility-cost) arm was still running at time of writing
+(smoke hinted ~17% over-refusal for bipolar vs 0% undefended). **A defense is only as good as its
+utility cost — do not quote the ASR numbers without it.** The dataset also contains 4 further attack
+families (authority, leetspeak, devmode, dan) and 7.8k benign rows for a fuller transfer/utility study.
+
+---
+
 ## 2026-09-05 — M1 REPLICATES ACROSS SCALE (Qwen2.5-1.5B) — mechanism is not a 7B artifact
 
 `peer_vs_request` on **Qwen2.5-1.5B** (its own circuit map), n=30, same length-matched 3-framing design.
