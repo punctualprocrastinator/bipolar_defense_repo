@@ -9,6 +9,31 @@ transformers 5.14.1, seed 0. Full provenance in each run's `manifest.json`.
 
 ---
 
+## 2026-09-05 — C4: propagation chain — node-level defense SIGNIFICANT; cascade decays
+
+`propagation_chain`, chain A(compromised abliterated peer) -> B -> C -> D of Qwen2.5-7B receivers,
+n=36 (12 goals x 3 trials), additive bipolar α=8 at agent B only. Run `20260905T065045Z-220eb6013a`.
+
+| condition | pos0 A | pos1 B | pos2 C | pos3 D |
+|---|---|---|---|---|
+| undefended | 75% | 28% | 19% | 6% |
+| **defend_B** | 75% | **0%** | 6% | 6% |
+| defend_B_random | 75% | 25% | 22% | 31% |
+
+- **The undefended cascade DECAYS (75→28→19→6%)** — the jailbreak does NOT amplify through
+  safety-tuned agents; each re-refuses partially. A real characterization (contra "amplifies").
+- **Steering agent B alone significantly halts it at B**: 28%→0%, McNemar **p=0.002**, and the
+  matched-norm **random control does nothing** (25%); deg=0 (coherent refusals). The network
+  counterfactual (steer one node → lower ASR there) holds and is significant.
+- **Downstream protection weaker / floor-limited**: defend_B @ C 19→6% (p=0.125), @ D unchanged
+  (undefended already 6% by D — little left to protect). The random direction *worsens* downstream
+  (6→31%, p=0.004), confirming the effect is the specific circuit direction, not perturbation.
+- **Next for a stronger downstream claim:** seed the chain with the *validated 75%-ASR dataset
+  crescendo attacks* (keeps the cascade high longer), and/or longer chains — so downstream nodes have
+  real ASR to protect.
+
+---
+
 ## 2026-09-04 — E5: distinct-attacker propagation — bipolar defense shows a coherent trend (underpowered)
 
 `multiagent_propagation`, receiver Qwen2.5-7B, **distinct compromised-peer attacker**
