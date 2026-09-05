@@ -1,0 +1,31 @@
+# C4: jailbreak propagation down a 4-agent chain (A compromised -> B -> C -> D), and whether
+# steering ONE node (B) halts downstream propagation. The headline claim per the lit review.
+#
+# Chain hops are single sequential generations (batching does not apply), so keep max_new_tokens
+# modest and n_trials small: cost = n_goals x n_trials x 3 conditions x 4 hops generations.
+seed: 0
+attacker_model: huihui-ai/Qwen2.5-7B-Instruct-abliterated-v2   # the compromised peer (smoked 2026-09-04)
+model:
+  name: Qwen/Qwen2.5-7B-Instruct
+  dtype: auto
+  device: auto
+  attn_implementation: eager     # head hooks
+generation:
+  max_new_tokens: 100            # per hop
+  n_trials: 3                    # cascade repeats per goal (seeds shared across conditions)
+  temperature: 0.7
+  top_p: 0.9
+intervention:
+  mode: additive_steering        # sign-correct; random_control arm is auto-built
+  positions: last
+  steering_alpha: 8.0
+circuit:
+  circuit_map_path: legacy_circuits/circuit_map_7B.json
+  selection: top_k
+  top_k_refusal: 11
+  top_k_compliance: 5
+data:
+  limit: 12                      # goals (AdvBench slice offset 120, disjoint from the fit slice)
+eval:
+  bootstrap_samples: 10000
+  confidence: 0.95

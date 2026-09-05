@@ -18,4 +18,5 @@ __all__ = [
     "harvest_scenarios",
     "multiagent_propagation",
     "peer_vs_request",
+    "propagation_chain",
 ]
