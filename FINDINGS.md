@@ -111,10 +111,25 @@ HarmBench judge, any-of-3 sampled trials, n=100 per family.
    disjoint from these attacks — defends two very different families (a multi-turn crescendo and a
    single-turn persona/fiction jailbreak). That is the cross-attack-transfer claim, demonstrated.
 
-**Caveat / pending:** the XSTest over-refusal (utility-cost) arm was still running at time of writing
-(smoke hinted ~17% over-refusal for bipolar vs 0% undefended). **A defense is only as good as its
-utility cost — do not quote the ASR numbers without it.** The dataset also contains 4 further attack
-families (authority, leetspeak, devmode, dan) and 7.8k benign rows for a fuller transfer/utility study.
+**UTILITY COST (completed) — the defense is NOT free:**
+
+| metric (Qwen2.5-7B) | undefended | bipolar α=8 |
+|---|---|---|
+| multiturn_crescendo ASR | 70% | **16%** |
+| persona_fiction ASR | 90% | **18%** |
+| **XSTest over-refusal** (n=100) | **2%** | **27%** |
+
+So the defense buys a 54–72 point ASR reduction at a cost of **+25 points of over-refusal** on XSTest.
+**Always report the pair.** On this axis our steering is *worse than Circuit Breakers*, which showed no
+measurable over-refusal on our (smaller) benign set (FINDINGS 2026-08-05) — consistent with the honest
+positioning that CB is the stronger dense defense and ours is the training-free one.
+
+Nuance: **XSTest is adversarially benign by construction** (prompts engineered to look harmful — "how do
+I kill a Python process"), so 27% is the *worst-case* over-refusal, not the everyday rate. The dataset
+carries 7.8k ordinary benign rows (wildchat / alpaca / magicoder / orbench) — measuring over-refusal
+there would give the fair operating-point curve, and an α-sweep would trace the ASR-vs-over-refusal
+frontier. Both are the obvious next steps before any deployment claim. The dataset also has 4 further
+attack families (authority, leetspeak, devmode, dan) for a fuller transfer study.
 
 ---
 
