@@ -1,7 +1,28 @@
 # Submission plan — workshop → ICLR main → ICML
 
-Dated 2026-09-06. Ladder: **NeurIPS workshop (UniReps) → ICLR main → ICML on feedback.**
-⚠ **Deadlines are NOT verified here — check the actual CFPs before planning around any date.**
+Dated 2026-09-06. **Ladder REVISED after verifying deadlines (2026-09-06).**
+
+## ⚠ VERIFIED DEADLINES — the original ladder does not work
+
+| venue | dates | status |
+|---|---|---|
+| **UniReps @ NeurIPS 2026** | — | **NOT RUNNING this year.** Absent from the accepted NeurIPS 2026 workshop list; the tracker marks it "Not running". **The workshop rung in the original plan does not exist.** |
+| NeurIPS 2026 workshops (relevant ones) | closed **2026-09-06** | ~61 workshops closed TODAY, including the best fits — *"Interpretability as a Science"*, *"Agents in the Wild: Safety, Security"*, *"Foundations of LM Security"*, *"Trustworthy AI Evaluation"*. Only unrelated ones remain open (MATH-AI, LCFM, AI-for-Peace, etc.). **Missed by ~hours.** |
+| **ICLR 2027** | **abstract 2026-09-18**, **paper 2026-09-25** (AoE) | **LIVE — 12 / 19 days.** Abstract registration is mandatory; miss it and you cannot submit the paper. |
+| **ICML 2027** | abstract 2027-01-16, paper 2027-01-22 (AoE) | ~4.5 months. Comfortable. |
+
+*(Verify UniReps on its own site before fully abandoning it; my sources are the NeurIPS 2026 workshop
+announcement + a workshop tracker.)*
+
+## Revised ladder
+1. **ICLR 2027 (25 Sep)** — submit the paper we can *actually support today*: cross-model framing survey
+   + layer mechanism + defense-on-validated-attacks **with** utility cost + the honest limitations. The
+   MI intent program is **not** feasible in 19 days; do not attempt it.
+2. **ICML 2027 (22 Jan)** — the ambitious version: MI1–MI4 intent program, the causal path-patch from the
+   sender-intent direction into the bipolar heads, baselines (Ghandeharioun persona-steering, CB),
+   adaptive attacker. 4.5 months is the right budget for this.
+3. **Workshop feedback** — NeurIPS 2026 is closed; use an **arXiv preprint now** for informal feedback,
+   and target **ICLR 2027 workshops** (deadlines typically ~Feb 2027) if a workshop rung is still wanted.
 
 ## 0. Venue fit (honest)
 
